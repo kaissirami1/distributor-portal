@@ -1,0 +1,24 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Submission {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String
+  companyName  String?
+  productName  String
+  category     String?
+  cost         String?
+  minimumOrder String?
+  city         String?
+  county       String?
+  notes        String?
+  imageUrl     String?
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+}
