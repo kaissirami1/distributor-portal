@@ -21,4 +21,14 @@ model Submission {
   imageUrl     String?
   status       String   @default("pending")
   createdAt    DateTime @default(now())
+
+  reviewNotes  ReviewNote[] 
+}
+model ReviewNote {
+  id           Int        @id @default(autoincrement())
+  content      String
+  createdAt    DateTime   @default(now())
+
+  submissionId Int
+  submission   Submission @relation(fields: [submissionId], references: [id])
 }

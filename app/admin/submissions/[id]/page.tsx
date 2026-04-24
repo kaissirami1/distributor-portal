@@ -2,6 +2,7 @@ import { prisma } from "../../../../lib/prisma";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { revalidatePath } from "next/cache";
 
 type PageProps = {
     params: Promise<{
@@ -18,12 +19,36 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
     }
 
     const { id } = await params;
+    const submissionId = Number(id);
 
     const submission = await prisma.submission.findUnique({
-        where: {
-            id: Number(id),
+        where: { id: submissionId },
+        include: {
+            reviewNotes: {
+                orderBy: {
+                    createdAt: "desc",
+                },
+            },
         },
     });
+
+    async function addReviewNote(formData: FormData) {
+        "use server";
+
+        const content = formData.get("content") as string;
+        const submissionId = Number(formData.get("submissionId"));
+
+        if (!content.trim()) return;
+
+        await prisma.reviewNote.create({
+            data: {
+                content,
+                submissionId,
+            },
+        });
+
+        revalidatePath(`/admin/submissions/${submissionId}`);
+    }
 
     if (!submission) {
         return (
@@ -54,7 +79,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                 />
             )}
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-3">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-3 mb-6">
                 <p><strong>Name:</strong> {submission.name}</p>
                 <p><strong>Email:</strong> {submission.email}</p>
                 <p><strong>Company:</strong> {submission.companyName || "-"}</p>
@@ -69,6 +94,42 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                     <strong>Created:</strong>{" "}
                     {new Date(submission.createdAt).toLocaleString()}
                 </p>
+            </div>
+
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+                <h2 className="text-xl font-bold mb-4">Review Notes</h2>
+
+                <form action={addReviewNote} className="mb-6">
+                    <input type="hidden" name="submissionId" value={submission.id} />
+
+                    <textarea
+                        name="content"
+                        placeholder="Add a private review note..."
+                        className="w-full min-h-28 bg-black border border-zinc-700 rounded p-3 mb-3"
+                    />
+
+                    <button className="bg-white text-black px-4 py-2 rounded font-semibold">
+                        Save Note
+                    </button>
+                </form>
+
+                {submission.reviewNotes.length === 0 ? (
+                    <p className="text-gray-400">No review notes yet.</p>
+                ) : (
+                    <div className="space-y-3">
+                        {submission.reviewNotes.map((note) => (
+                            <div
+                                key={note.id}
+                                className="border border-zinc-800 rounded p-3 bg-black"
+                            >
+                                <p>{note.content}</p>
+                                <p className="text-xs text-gray-500 mt-2">
+                                    {new Date(note.createdAt).toLocaleString()}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
