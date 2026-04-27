@@ -42,46 +42,31 @@ export default function SubmitPage() {
             },
         });
 
-        // User confirmation email
         await resend.emails.send({
             from: "Makram Distributions <onboarding@resend.dev>",
             to: email,
             subject: "We received your product submission",
             html: `
         <div style="font-family: Arial, sans-serif; color: #111; line-height: 1.6; max-width: 600px;">
-          <h2 style="margin-bottom: 8px;">Makram Distributions</h2>
+          <h2>Makram Distributions</h2>
           <hr style="border: none; border-top: 1px solid #ddd;" />
-
           <p>Hi ${name},</p>
-
-          <p>
-            Thank you for submitting your product application to Makram Distributions.
-            We have received your information and will review it carefully.
-          </p>
-
-          <p>
-            If your product looks like a good fit for distribution, we will contact you
-            with the next steps.
-          </p>
-
-          <p style="margin-top: 24px;">
-            Best regards,<br />
-            Makram Distributions
-          </p>
+          <p>Thank you for submitting your product application to Makram Distributions.</p>
+          <p>We have received your information and will review it carefully.</p>
+          <p>If your product looks like a good fit for distribution, we will contact you with the next steps.</p>
+          <p style="margin-top: 24px;">Best regards,<br />Makram Distributions</p>
         </div>
       `,
         });
 
-        // Admin notification email
         await resend.emails.send({
             from: "Makram Distributions <onboarding@resend.dev>",
             to: "YOUR_EMAIL_HERE@gmail.com",
             subject: "New Product Submission",
             html: `
         <div style="font-family: Arial, sans-serif; color: #111; line-height: 1.6; max-width: 600px;">
-          <h2 style="margin-bottom: 8px;">New Product Submission</h2>
+          <h2>New Product Submission</h2>
           <hr style="border: none; border-top: 1px solid #ddd;" />
-
           <p><strong>Name:</strong> ${name}</p>
           <p><strong>Email:</strong> ${email}</p>
           <p><strong>Phone:</strong> ${phone || "-"}</p>
@@ -94,10 +79,6 @@ export default function SubmitPage() {
           <p><strong>County:</strong> ${county || "-"}</p>
           <p><strong>Image URL:</strong> ${imageUrl || "-"}</p>
           <p><strong>Notes:</strong> ${notes || "-"}</p>
-
-          <p style="margin-top: 24px;">
-            Review this submission in your Makram Distributions admin dashboard.
-          </p>
         </div>
       `,
         });
@@ -106,26 +87,7 @@ export default function SubmitPage() {
     }
 
     return (
-        <main className="min-h-screen bg-black text-white">
-            <nav className="border-b border-zinc-800 px-6 py-4">
-                <div className="max-w-6xl mx-auto flex items-center justify-between">
-
-                    <div className="font-bold tracking-wide text-white">
-                        Makram Distributions
-                    </div>
-
-                    <div className="flex gap-6 text-sm text-gray-400">
-                        <a href="/submit" className="hover:text-white transition">
-                            Submit
-                        </a>
-                        <a href="/admin/login" className="hover:text-white transition">
-                            Admin
-                        </a>
-                    </div>
-
-                </div>
-            </nav>
-
+        <main className="min-h-screen text-white">
             <div className="px-6 py-12">
                 <div className="max-w-4xl mx-auto">
                     <div className="text-center mb-10">
@@ -138,8 +100,8 @@ export default function SubmitPage() {
                         </h1>
 
                         <p className="text-gray-400 mt-4 max-w-2xl mx-auto">
-                            Share your product details so we can review whether it is a good fit
-                            for distribution.
+                            Share your product details so we can review whether it is a good
+                            fit for distribution.
                         </p>
                     </div>
 
