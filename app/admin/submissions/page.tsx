@@ -4,6 +4,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import DeleteButton from "./DeleteButton";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function AdminSubmissionsPage() {
     const cookieStore = await cookies();
@@ -23,10 +26,46 @@ export default async function AdminSubmissionsPage() {
         const id = Number(formData.get("id"));
         const status = String(formData.get("status"));
 
-        await prisma.submission.update({
+        const updatedSubmission = await prisma.submission.update({
             where: { id },
             data: { status },
         });
+
+        if (status === "approved") {
+            await resend.emails.send({
+                from: "onboarding@resend.dev",
+                to: updatedSubmission.email,
+                subject: "Your product submission has been approved",
+                html: `
+          <h2>Product Submission Approved</h2>
+          <p>Hi ${updatedSubmission.name},</p>
+          <p>We reviewed your product submission for <strong>${updatedSubmission.productName}</strong>.</p>
+          <p>Your product has been approved for the next step in our distribution review process.</p>
+          <p>We will contact you soon with more details.</p>
+          <br/>
+          <p>Best regards,</p>
+          <p>Your Distribution Team</p>
+        `,
+            });
+        }
+
+        if (status === "rejected") {
+            await resend.emails.send({
+                from: "onboarding@resend.dev",
+                to: updatedSubmission.email,
+                subject: "Update on your product submission",
+                html: `
+          <h2>Product Submission Update</h2>
+          <p>Hi ${updatedSubmission.name},</p>
+          <p>Thank you for submitting <strong>${updatedSubmission.productName}</strong>.</p>
+          <p>After reviewing the information, we are not moving forward with this product at this time.</p>
+          <p>We appreciate your interest and may reconsider in the future if there is a better fit.</p>
+          <br/>
+          <p>Best regards,</p>
+          <p>Your Distribution Team</p>
+        `,
+            });
+        }
 
         revalidatePath("/admin/submissions");
     }
@@ -78,6 +117,9 @@ export default async function AdminSubmissionsPage() {
                     <thead className="bg-zinc-900 text-gray-300">
                         <tr>
                             <th className="text-left p-3">Date</th>
+                            <th className="text-left p-3">Name</th>
+                            <th className="text-left p-3">Email</th>
+                            <th className="text-left p-3">Phone</th>
                             <th className="text-left p-3">Company</th>
                             <th className="text-left p-3">Product</th>
                             <th className="text-left p-3">Category</th>
@@ -93,6 +135,30 @@ export default async function AdminSubmissionsPage() {
                             <tr key={submission.id} className="border-t border-zinc-800">
                                 <td className="p-3">
                                     {new Date(submission.createdAt).toLocaleDateString()}
+                                </td>
+
+                                <td className="p-3">{submission.name}</td>
+
+                                <td className="p-3">
+                                    <a
+                                        href={`mailto:${submission.email}`}
+                                        className="text-blue-400 underline"
+                                    >
+                                        {submission.email}
+                                    </a>
+                                </td>
+
+                                <td className="p-3">
+                                    {submission.phone ? (
+                                        <a
+                                            href={`tel:${submission.phone}`}
+                                            className="text-blue-400 underline"
+                                        >
+                                            {submission.phone}
+                                        </a>
+                                    ) : (
+                                        "-"
+                                    )}
                                 </td>
 
                                 <td className="p-3">{submission.companyName || "-"}</td>
