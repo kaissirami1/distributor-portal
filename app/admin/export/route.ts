@@ -37,7 +37,7 @@ export async function GET() {
         { header: "Notes", key: "notes", width: 40 },
     ];
 
-    submissions.forEach((s) => {
+    submissions.forEach((s: any) => {
         worksheet.addRow({
             date: new Date(s.createdAt).toLocaleString(),
             name: s.name,
