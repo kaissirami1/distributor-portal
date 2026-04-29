@@ -16,6 +16,9 @@ model Submission {
   category     String?
   cost         String?
   minimumOrder String?
+  productUrl   String?
+documentsUrl String?
+barcode      String?
   city         String?
   county       String?
   notes        String?

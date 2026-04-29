@@ -62,7 +62,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
     }
 
     return (
-        <div className="p-10 max-w-3xl">
+        <div className="p-10 max-w-4xl">
             <Link href="/admin/submissions" className="underline">
                 ← Back to submissions
             </Link>
@@ -75,21 +75,127 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                 <img
                     src={submission.imageUrl}
                     alt="product"
-                    className="w-full h-80 object-cover rounded-xl mb-6"
+                    className="w-full max-h-80 object-cover rounded-xl mb-6 border border-zinc-700"
                 />
             )}
 
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-3 mb-6">
-                <p><strong>Name:</strong> {submission.name}</p>
-                <p><strong>Email:</strong> {submission.email}</p>
-                <p><strong>Company:</strong> {submission.companyName || "-"}</p>
-                <p><strong>Status:</strong> {submission.status}</p>
-                <p><strong>Category:</strong> {submission.category || "-"}</p>
-                <p><strong>Cost:</strong> {submission.cost || "-"}</p>
-                <p><strong>Minimum Order:</strong> {submission.minimumOrder || "-"}</p>
-                <p><strong>City:</strong> {submission.city || "-"}</p>
-                <p><strong>County:</strong> {submission.county || "-"}</p>
-                <p><strong>Notes:</strong> {submission.notes || "-"}</p>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4 mb-6">
+                <p>
+                    <strong>Name:</strong> {submission.name}
+                </p>
+
+                <p>
+                    <strong>Email:</strong>{" "}
+                    <a
+                        href={`mailto:${submission.email}`}
+                        className="text-blue-400 underline"
+                    >
+                        {submission.email}
+                    </a>
+                </p>
+
+                <p>
+                    <strong>Phone:</strong>{" "}
+                    {submission.phone ? (
+                        <a
+                            href={`tel:${submission.phone}`}
+                            className="text-blue-400 underline"
+                        >
+                            {submission.phone}
+                        </a>
+                    ) : (
+                        "-"
+                    )}
+                </p>
+
+                <p>
+                    <strong>Company:</strong> {submission.companyName || "-"}
+                </p>
+
+                <p>
+                    <strong>Status:</strong> {submission.status}
+                </p>
+
+                <p>
+                    <strong>Category:</strong> {submission.category || "-"}
+                </p>
+
+                <p>
+                    <strong>Minimum Order:</strong> {submission.minimumOrder || "-"}
+                </p>
+
+                <p>
+                    <strong>Product URL:</strong>{" "}
+                    {submission.productUrl ? (
+                        <a
+                            href={submission.productUrl}
+                            target="_blank"
+                            className="text-blue-400 underline"
+                        >
+                            Open product link
+                        </a>
+                    ) : (
+                        "-"
+                    )}
+                </p>
+
+                <p>
+                    <strong>Documents:</strong>{" "}
+                    {submission.documentsUrl ? (
+                        <a
+                            href={submission.documentsUrl}
+                            target="_blank"
+                            className="inline-block bg-white text-black px-3 py-1 rounded text-sm font-semibold"
+                        >
+                            Download / Open File
+                        </a>
+                    ) : (
+                        "-"
+                    )}
+                </p>
+
+                <div>
+                    <p>
+                        <strong>Barcode / UPC:</strong>
+                    </p>
+
+                    {submission.barcode ? (
+                        submission.barcode.startsWith("/uploads") ? (
+                            <div className="mt-2">
+                                <img
+                                    src={submission.barcode}
+                                    alt="barcode"
+                                    className="w-64 max-h-48 object-contain border border-zinc-700 rounded bg-white p-2"
+                                />
+
+                                <a
+                                    href={submission.barcode}
+                                    target="_blank"
+                                    className="inline-block mt-2 text-blue-400 underline text-sm"
+                                >
+                                    Open barcode file
+                                </a>
+                            </div>
+                        ) : (
+                            <p className="mt-1">{submission.barcode}</p>
+                        )
+                    ) : (
+                        <p className="mt-1">-</p>
+                    )}
+                </div>
+
+                <p>
+                    <strong>City:</strong> {submission.city || "-"}
+                </p>
+
+                <p>
+                    <strong>County:</strong> {submission.county || "-"}
+                </p>
+
+                <p>
+                    <strong>Notes:</strong> {submission.notes || "-"}
+                </p>
+
                 <p>
                     <strong>Created:</strong>{" "}
                     {new Date(submission.createdAt).toLocaleString()}

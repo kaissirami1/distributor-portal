@@ -4,210 +4,238 @@ export const metadata = {
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen text-white bg-[radial-gradient(circle_at_top,#5a4725_0%,#2a2112_35%,#0a0907_70%,#000_100%)]">
-      {/* HERO */}
-      <section className="px-6 py-32 text-center">
-        <div className="max-w-6xl mx-auto">
-          <p className="text-sm uppercase tracking-[0.35em] text-amber-300/70 mb-5">
+    <main className="min-h-screen text-white bg-[radial-gradient(circle_at_top_left,#7a5a2a_0%,#2a2112_28%,#090806_65%,#000_100%)]">
+      <section className="px-6 py-36 text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.06),transparent)] pointer-events-none" />
+
+        <div className="max-w-6xl mx-auto relative">
+          <p className="fade-up text-sm uppercase tracking-[0.45em] text-amber-300/70 mb-6">
             Makram Distributions
           </p>
 
-          <h1 className="text-6xl md:text-7xl font-bold leading-tight">
-            Premium Product Distribution
+          <h1 className="fade-up text-6xl md:text-8xl font-bold leading-[0.95]">
+            Distribution Built
             <br />
-            <span className="text-amber-100/80">
-              Across California Markets
-            </span>
+            <span className="text-amber-100/80">For Better Products</span>
           </h1>
 
-          <p className="text-stone-300 max-w-2xl mx-auto mt-6 text-lg">
-            Makram Distributions evaluates and connects high-potential products
-            with the right retail, wholesale, and regional distribution channels
-            across Orange County, Los Angeles, San Diego, and beyond.
+          <p className="fade-up-delay text-stone-300 max-w-3xl mx-auto mt-8 text-lg md:text-xl">
+            We review emerging and retail-ready products for distribution
+            opportunities across California markets, helping strong brands move
+            toward the right channels with a selective, organized process.
           </p>
 
-          <div className="mt-10 flex justify-center gap-4">
+          <div className="fade-up-delay mt-10 flex flex-col sm:flex-row justify-center gap-4">
             <a
               href="/submit"
-              className="bg-amber-200 text-black px-6 py-3 rounded-full font-semibold hover:bg-amber-100 transition"
+              className="bg-amber-200 text-black px-8 py-4 rounded-full font-semibold hover:bg-amber-100 transition"
             >
               Submit Your Product
             </a>
 
             <a
               href="#process"
-              className="border border-amber-200/30 px-6 py-3 rounded-full font-semibold hover:bg-amber-200/10 transition"
+              className="border border-amber-200/30 px-8 py-4 rounded-full font-semibold hover:bg-amber-200/10 transition"
             >
-              Explore Process
+              View Process
             </a>
           </div>
         </div>
       </section>
 
-      {/* SERVICES */}
-      <section id="review" className="px-6 py-20 border-t border-amber-200/10">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8">
-          <div className="bg-black/35 border border-amber-200/10 rounded-2xl p-6 backdrop-blur">
-            <h3 className="text-xl font-semibold mb-3 text-amber-100">
-              Product Evaluation
-            </h3>
-            <p className="text-stone-300">
-              Each product is reviewed for pricing, positioning, scalability,
-              and overall market readiness before moving forward.
-            </p>
-          </div>
-
-          <div className="bg-black/35 border border-amber-200/10 rounded-2xl p-6 backdrop-blur">
-            <h3 className="text-xl font-semibold mb-3 text-amber-100">
-              Market Fit Strategy
-            </h3>
-            <p className="text-stone-300">
-              We analyze where your product fits best—retail stores, specialty
-              markets, cafes, grocery, or wholesale distribution channels.
-            </p>
-          </div>
-
-          <div className="bg-black/35 border border-amber-200/10 rounded-2xl p-6 backdrop-blur">
-            <h3 className="text-xl font-semibold mb-3 text-amber-100">
-              Supplier Onboarding
-            </h3>
-            <p className="text-stone-300">
-              Qualified products may move into onboarding, pricing alignment,
-              and real distribution opportunities.
-            </p>
-          </div>
+      <section className="px-6 py-20">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-6">
+          {[
+            [
+              "Selective Review",
+              "Every submission is reviewed for fit, readiness, and market potential.",
+            ],
+            [
+              "California Focus",
+              "Focused on Orange County, Los Angeles, San Diego, and surrounding markets.",
+            ],
+            [
+              "Organized Onboarding",
+              "Approved products can move into a structured next-step review process.",
+            ],
+          ].map(([title, text]) => (
+            <div
+              key={title}
+              className="hover-lift bg-white/[0.06] border border-amber-200/10 rounded-3xl p-7 backdrop-blur-xl shadow-2xl"
+            >
+              <h3 className="text-xl font-semibold text-amber-100 mb-3">
+                {title}
+              </h3>
+              <p className="text-stone-300">{text}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* CALIFORNIA MARKETS */}
-      <section id="markets" className="px-6 py-20">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+      <section className="px-6 py-24 border-t border-amber-200/10">
+        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-14 items-center">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-amber-300/70 mb-4">
-              California Focus
+            <p className="text-sm uppercase tracking-[0.35em] text-amber-300/70 mb-4">
+              What We Do
             </p>
 
-            <h2 className="text-4xl font-bold mb-4">
-              Focused on high-value California markets.
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              We help identify products with distribution potential.
             </h2>
 
-            <p className="text-stone-300">
-              Makram Distributions operates with a strong focus on Southern
-              California including Orange County, Los Angeles, and San Diego.
-              We prioritize products that can succeed in competitive,
-              high-demand retail environments.
+            <p className="text-stone-300 text-lg">
+              Makram Distributions reviews products for potential retail,
+              wholesale, and regional distribution opportunities. We focus on
+              small products with strong presentation, clear value, and realistic
+              market fit.
             </p>
           </div>
 
-          <div className="bg-black/35 border border-amber-200/10 rounded-2xl p-6">
-            <h3 className="text-xl font-bold mb-4 text-amber-100">
-              Products We Review
+          <div className="hover-lift bg-black/35 border border-amber-200/10 rounded-3xl p-8">
+            <h3 className="text-2xl font-bold text-amber-100 mb-5">
+              What We Look For
             </h3>
 
-            <ul className="space-y-3 text-stone-300">
-              <li>• Small packaged consumer goods</li>
-              <li>• Specialty retail products</li>
-              <li>• Food and beverage items</li>
-              <li>• Lifestyle and household products</li>
-              <li>• Emerging brands with strong positioning</li>
+            <ul className="space-y-4 text-stone-300">
+              <li>• Small packaged consumer products</li>
+              <li>• Strong branding and presentation</li>
+              <li>• Clear retail or wholesale positioning</li>
+              <li>• Products ready for distribution review</li>
+              <li>• Emerging brands with growth potential</li>
             </ul>
           </div>
         </div>
       </section>
 
-      {/* PROCESS */}
-      <section id="process" className="px-6 py-20 border-t border-amber-200/10">
+      <section id="process" className="px-6 py-24 border-t border-amber-200/10">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-bold mb-10 text-center">
-            How Our Process Works
-          </h2>
+          <div className="text-center mb-14">
+            <p className="text-sm uppercase tracking-[0.35em] text-amber-300/70 mb-4">
+              Process
+            </p>
+            <h2 className="text-4xl md:text-5xl font-bold">
+              A clear review path
+            </h2>
+          </div>
 
           <div className="grid md:grid-cols-4 gap-6">
             {[
-              {
-                number: "01",
-                title: "Submit",
-                text: "Provide product details including pricing, category, and distribution goals.",
-              },
-              {
-                number: "02",
-                title: "Review",
-                text: "Our team evaluates your product for market fit and potential.",
-              },
-              {
-                number: "03",
-                title: "Contact",
-                text: "We reach out if your product aligns with our current focus.",
-              },
-              {
-                number: "04",
-                title: "Move Forward",
-                text: "Approved products move into onboarding and distribution planning.",
-              },
-            ].map((step) => (
+              [
+                "01",
+                "Submit",
+                "Provide your product details, documents, images, and barcode information.",
+              ],
+              [
+                "02",
+                "Review",
+                "We review the submission for market fit, presentation, and readiness.",
+              ],
+              [
+                "03",
+                "Contact",
+                "If there is a fit, we reach out for more information or next steps.",
+              ],
+              [
+                "04",
+                "Move Forward",
+                "Approved products can move into onboarding and distribution planning.",
+              ],
+            ].map(([number, title, text]) => (
               <div
-                key={step.number}
-                className="bg-black/35 border border-amber-200/10 rounded-2xl p-6"
+                key={number}
+                className="hover-lift bg-white/[0.05] border border-amber-200/10 rounded-3xl p-6"
               >
-                <p className="text-amber-300/60 mb-2">{step.number}</p>
-                <h4 className="font-semibold mb-2 text-amber-100">
-                  {step.title}
-                </h4>
-                <p className="text-stone-300 text-sm">{step.text}</p>
+                <p className="text-amber-300/60 mb-3">{number}</p>
+                <h3 className="font-semibold text-amber-100 mb-3">{title}</h3>
+                <p className="text-stone-300 text-sm">{text}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ABOUT */}
-      <section id="about" className="px-6 py-20">
-        <div className="max-w-4xl mx-auto text-center bg-black/30 border border-amber-200/10 rounded-3xl p-10 backdrop-blur">
-          <p className="text-sm uppercase tracking-[0.3em] text-amber-300/70 mb-4">
-            About
+      <section className="px-6 py-24">
+        <div className="hover-lift max-w-6xl mx-auto bg-black/40 border border-amber-200/10 rounded-[2rem] p-10 md:p-14 text-center backdrop-blur-xl">
+          <p className="text-sm uppercase tracking-[0.35em] text-amber-300/70 mb-4">
+            Product Categories
           </p>
 
-          <h2 className="text-4xl font-bold mb-4">
-            About Makram Distributions
+          <h2 className="text-4xl md:text-5xl font-bold mb-8">
+            Built for more than one category
           </h2>
 
-          <p className="text-stone-300">
-            Makram Distributions focuses on identifying and developing strong
-            product opportunities across California markets. This section can be
-            expanded with your full company story, mission, and long-term vision
-            as the business grows.
-          </p>
+          <div className="grid md:grid-cols-5 gap-4 text-stone-300">
+            {[
+              "Food & Beverage",
+              "Specialty Retail",
+              "Lifestyle",
+              "Household",
+              "Emerging Brands",
+            ].map((item) => (
+              <div
+                key={item}
+                className="hover-lift border border-amber-200/10 rounded-2xl p-4 bg-white/[0.04]"
+              >
+                {item}
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="px-6 py-20 text-center">
-        <h2 className="text-4xl font-bold mb-4">Ready to get started?</h2>
+      <section className="px-6 py-24 border-t border-amber-200/10">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold text-center mb-10">
+            Frequently Asked Questions
+          </h2>
 
-        <p className="text-stone-300 mb-8">
-          Submit your product today and we’ll review it for distribution
-          potential.
+          <div className="space-y-5">
+            {[
+              [
+                "Do you guarantee placement?",
+                "No. Every product is reviewed before any decision is made.",
+              ],
+              [
+                "Do you work with small brands?",
+                "Yes. We are especially interested in small and emerging products with strong potential.",
+              ],
+              [
+                "What happens after submission?",
+                "Your product is reviewed internally. If it appears to be a fit, we contact you for next steps.",
+              ],
+              [
+                "What markets do you focus on?",
+                "We focus on California, especially Orange County, Los Angeles, San Diego, and surrounding areas.",
+              ],
+            ].map(([q, a]) => (
+              <div
+                key={q}
+                className="hover-lift bg-black/35 border border-amber-200/10 rounded-2xl p-6"
+              >
+                <h3 className="font-semibold text-amber-100 mb-2">{q}</h3>
+                <p className="text-stone-300">{a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="px-6 py-28 text-center">
+        <h2 className="text-4xl md:text-5xl font-bold mb-5">
+          Ready to submit your product?
+        </h2>
+
+        <p className="text-stone-300 mb-9">
+          Start the application and we’ll review it for distribution potential.
         </p>
 
         <a
           href="/submit"
-          className="bg-amber-200 text-black px-8 py-4 rounded-full font-semibold hover:bg-amber-100 transition"
+          className="bg-amber-200 text-black px-10 py-4 rounded-full font-semibold hover:bg-amber-100 transition"
         >
           Submit Your Product
         </a>
       </section>
-
-      {/* FOOTER */}
-      <footer className="border-t border-amber-200/10 px-6 py-8 text-sm text-stone-400">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between gap-4">
-          <p>© {new Date().getFullYear()} Makram Distributions</p>
-
-          <div className="flex flex-col md:flex-row gap-4">
-            <p>Email: info@makramdistributions.com</p>
-            <p>Phone: (000) 000-0000</p>
-          </div>
-        </div>
-      </footer>
     </main>
   );
 }
