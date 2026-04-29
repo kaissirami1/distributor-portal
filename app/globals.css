@@ -19,21 +19,75 @@
   }
 }
 
+/* BASE */
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* INPUTS (UPGRADED) */
 .input {
   width: 100%;
   padding: 12px;
-  background: black;
+  background: rgba(0, 0, 0, 0.6);
   border: 1px solid #3f3f46;
-  border-radius: 10px;
+  border-radius: 12px;
   outline: none;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(6px);
 }
 
 .input:focus {
-  border-color: white;
+  border-color: #fde68a;
+  box-shadow: 0 0 0 1px rgba(253, 230, 138, 0.4);
+}
+
+/* ========================= */
+/* ✨ ANIMATIONS */
+/* ========================= */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: fadeUp 0.8s ease-out both;
+}
+
+.fade-up-delay {
+  animation: fadeUp 1s ease-out both;
+  animation-delay: 0.2s;
+}
+
+/* ========================= */
+/* ✨ HOVER EFFECTS */
+/* ========================= */
+
+.hover-lift {
+  transition: transform 0.25s ease, border-color 0.25s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  border-color: rgba(253, 230, 138, 0.35);
+}
+
+/* ========================= */
+/* ✨ BUTTON POLISH */
+/* ========================= */
+
+button {
+  transition: all 0.25s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
 }
