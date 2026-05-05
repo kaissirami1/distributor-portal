@@ -12,7 +12,7 @@ export default function AdminLoginPage() {
             username === process.env.ADMIN_USERNAME &&
             password === process.env.ADMIN_PASSWORD
         ) {
-            const cookieStore = cookies();
+            const cookieStore = await cookies();
 
             cookieStore.set("admin-auth", "true", {
                 httpOnly: true,
