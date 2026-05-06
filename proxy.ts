@@ -1,15 +1,24 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function proxy(req: NextRequest) {
-    const isAdmin = req.cookies.get("admin-auth")?.value === "true";
-    const { pathname } = req.nextUrl;
+export default function proxy(request: NextRequest) {
+    const { pathname } = request.nextUrl;
+    const isAuthenticated = request.cookies.get("admin-auth")?.value === "true";
 
-    if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
-        if (!isAdmin) {
-            return NextResponse.redirect(new URL("/admin/login", req.url));
+    if (pathname === "/admin/login") {
+        if (isAuthenticated) {
+            return NextResponse.redirect(new URL("/admin/submissions", request.url));
         }
+        return NextResponse.next();
+    }
+
+    if (!isAuthenticated) {
+        return NextResponse.redirect(new URL("/admin/login", request.url));
     }
 
     return NextResponse.next();
 }
+
+export const config = {
+    matcher: ["/admin/:path*"],
+};

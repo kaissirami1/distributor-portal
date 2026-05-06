@@ -226,7 +226,7 @@ export default function HomePage() {
         </h2>
 
         <p className="text-stone-300 mb-9">
-          Start the application and we’ll review it for distribution potential.
+          Start the application and well review it for distribution potential.
         </p>
 
         <a
