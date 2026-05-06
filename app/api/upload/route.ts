@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function POST(req: NextRequest) {
     const formData = await req.formData();
@@ -13,18 +18,22 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const uploadDir = path.join(process.cwd(), "public/uploads");
-
-    if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    const fileName = `${Date.now()}-${file.name}`;
-    const filePath = path.join(uploadDir, fileName);
-
-    fs.writeFileSync(filePath, buffer);
+    const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader
+            .upload_stream(
+                {
+                    folder: "makram-distributions",
+                    resource_type: "auto",
+                },
+                (error, result) => {
+                    if (error) reject(error);
+                    else resolve(result);
+                }
+            )
+            .end(buffer);
+    });
 
     return NextResponse.json({
-        url: `/uploads/${fileName}`,
+        url: (result as any).secure_url,
     });
 }
