@@ -1,13 +1,7 @@
 import { prisma } from "../../../lib/prisma";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 export default async function AdminProductsPage() {
-    const cookieStore = await cookies();
-    const isLoggedIn = cookieStore.get("admin-auth")?.value === "true";
-    if (!isLoggedIn) redirect("/admin/login");
-
     const products = await prisma.product.findMany({
         orderBy: { createdAt: "desc" },
     });
@@ -18,13 +12,25 @@ export default async function AdminProductsPage() {
         const description = formData.get("description") as string;
         const origin = formData.get("origin") as string;
         const image = formData.get("image") as string;
-
         if (!name.trim() || !description.trim() || !origin.trim()) return;
-
         await prisma.product.create({
             data: { name, description, origin, image: image || null },
         });
+        revalidatePath("/admin/products");
+        revalidatePath("/products");
+    }
 
+    async function updateProduct(formData: FormData) {
+        "use server";
+        const id = Number(formData.get("id"));
+        const name = formData.get("name") as string;
+        const description = formData.get("description") as string;
+        const origin = formData.get("origin") as string;
+        const image = formData.get("image") as string;
+        await prisma.product.update({
+            where: { id },
+            data: { name, description, origin, image: image || null },
+        });
         revalidatePath("/admin/products");
         revalidatePath("/products");
     }
@@ -81,7 +87,7 @@ export default async function AdminProductsPage() {
                         />
                     </div>
                     <div>
-                        <label className="text-sm text-gray-400 block mb-1">Image URL (Cloudinary or any URL)</label>
+                        <label className="text-sm text-gray-400 block mb-1">Image URL</label>
                         <input
                             name="image"
                             placeholder="https://..."
@@ -98,48 +104,100 @@ export default async function AdminProductsPage() {
             </div>
 
             {/* Products list */}
-            <div className="space-y-3">
+            <div className="space-y-4">
                 {products.length === 0 ? (
                     <p className="text-gray-500 text-sm">No products yet. Add one above.</p>
                 ) : (
                     products.map((p) => (
-                        <div
+                        <details
                             key={p.id}
-                            className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex gap-4 items-start"
+                            className="bg-zinc-900 border border-zinc-800 rounded-xl group"
                         >
-                            {p.image ? (
-                                <img
-                                    src={p.image}
-                                    alt={p.name}
-                                    className="w-20 h-20 object-cover rounded-lg border border-zinc-700 flex-shrink-0"
-                                />
-                            ) : (
-                                <div className="w-20 h-20 bg-zinc-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                                    <span className="text-zinc-600 text-xs">No image</span>
-                                </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between gap-3">
-                                    <div>
-                                        <p className="font-semibold">{p.name}</p>
-                                        <span className="inline-block text-xs text-amber-300/70 border border-amber-300/20 rounded-full px-2 py-0.5 mt-1 mb-2">
-                                            {p.origin}
-                                        </span>
-                                        <p className="text-sm text-gray-400 leading-relaxed">{p.description}</p>
+                            <summary className="flex items-center gap-4 p-4 cursor-pointer list-none">
+                                {p.image ? (
+                                    <img
+                                        src={p.image}
+                                        alt={p.name}
+                                        className="w-16 h-16 object-cover rounded-lg border border-zinc-700 flex-shrink-0"
+                                    />
+                                ) : (
+                                    <div className="w-16 h-16 bg-zinc-800 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <span className="text-zinc-600 text-xs">No img</span>
                                     </div>
-                                    <form action={deleteProduct} className="flex-shrink-0">
-                                        <input type="hidden" name="id" value={p.id} />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-semibold">{p.name}</p>
+                                    <span className="inline-block text-xs text-amber-300/70 border border-amber-300/20 rounded-full px-2 py-0.5 mt-1">
+                                        {p.origin}
+                                    </span>
+                                    <p className="text-sm text-gray-400 mt-1 truncate">{p.description}</p>
+                                </div>
+                                <span className="text-zinc-500 text-sm ml-2">Edit ▾</span>
+                            </summary>
+
+                            {/* Edit form */}
+                            <div className="px-4 pb-4 border-t border-zinc-800 pt-4">
+                                <form action={updateProduct} className="space-y-3">
+                                    <input type="hidden" name="id" value={p.id} />
+                                    <div className="grid md:grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-xs text-gray-400 block mb-1">Product Name</label>
+                                            <input
+                                                name="name"
+                                                defaultValue={p.name}
+                                                required
+                                                className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs text-gray-400 block mb-1">Origin</label>
+                                            <input
+                                                name="origin"
+                                                defaultValue={p.origin}
+                                                required
+                                                className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-400 block mb-1">Description</label>
+                                        <textarea
+                                            name="description"
+                                            defaultValue={p.description}
+                                            required
+                                            rows={2}
+                                            className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500 resize-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-400 block mb-1">Image URL</label>
+                                        <input
+                                            name="image"
+                                            defaultValue={p.image || ""}
+                                            className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500"
+                                        />
+                                    </div>
+                                    <div className="flex gap-3">
                                         <button
                                             type="submit"
-                                            className="text-zinc-600 hover:text-red-400 text-sm transition-colors"
-                                            title="Delete product"
+                                            className="bg-white text-black px-4 py-1.5 rounded text-sm font-semibold hover:bg-gray-100 transition"
                                         >
-                                            Delete
+                                            Save Changes
                                         </button>
-                                    </form>
-                                </div>
+                                        <form action={deleteProduct}>
+                                            <input type="hidden" name="id" value={p.id} />
+                                            <button
+                                                type="submit"
+                                                className="text-red-400 hover:text-red-300 text-sm px-4 py-1.5 border border-red-900 rounded transition"
+                                                onclick="return confirm('Delete this product?')"
+                                            >
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </form>
                             </div>
-                        </div>
+                        </details>
                     ))
                 )}
             </div>
