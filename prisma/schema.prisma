@@ -26,11 +26,22 @@ model Submission {
   status       String   @default("pending")
   createdAt    DateTime @default(now())
 
-  reviewNotes  ReviewNote[] 
+  reviewNotes  ReviewNote[]
+  statusEvents StatusEvent[]
 }
 model ReviewNote {
   id           Int        @id @default(autoincrement())
   content      String
+  author       String     @default("Admin")   // ← add this line
+  createdAt    DateTime   @default(now())
+
+  submissionId Int
+  submission   Submission @relation(fields: [submissionId], references: [id])
+}
+model StatusEvent {
+  id           Int        @id @default(autoincrement())
+  fromStatus   String
+  toStatus     String
   createdAt    DateTime   @default(now())
 
   submissionId Int
