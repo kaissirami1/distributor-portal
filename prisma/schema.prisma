@@ -47,3 +47,11 @@ model StatusEvent {
   submissionId Int
   submission   Submission @relation(fields: [submissionId], references: [id])
 }
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  image       String?
+  origin      String
+  createdAt   DateTime @default(now())
+}

@@ -50,6 +50,10 @@ export default function RootLayout({
                 About
               </a>
 
+              <a href="/products" className="hover:text-white transition">
+                Our Products
+              </a>
+
               <div className="relative group">
                 <button className="hover:text-white transition">
                   Company ▾
@@ -119,6 +123,7 @@ export default function RootLayout({
               <div className="space-y-2">
                 <a href="/" className="block hover:text-white transition">Home</a>
                 <a href="/about" className="block hover:text-white transition">About</a>
+                <a href="/products">Our Products</a>
                 <a href="/submit" className="block hover:text-white transition">Submit Product</a>
               </div>
             </div>
