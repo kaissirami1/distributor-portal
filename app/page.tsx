@@ -35,22 +35,29 @@ export default async function HomePage() {
           </p>
 
           <div className="fade-up-delay mt-10 flex flex-col sm:flex-row justify-center gap-4">
-            <a
-              href="/submit"
-              className="bg-amber-200 text-black px-8 py-4 rounded-full font-semibold hover:bg-amber-100 transition"
-            >
-              Submit Your Product
-            </a>
 
-            <a
-              href="#process"
-              className="border border-amber-200/30 px-8 py-4 rounded-full font-semibold hover:bg-amber-200/10 transition"
-            >
-              View Process
-            </a>
-          </div>
-        </div>
-      </section>
+            href="/submit"
+            className="bg-amber-200 text-black px-8 py-4 rounded-full font-semibold hover:bg-amber-100 transition"
+  >
+            Submit Your Product
+          </a>
+
+
+          href="#process"
+          className="border border-amber-200/30 px-8 py-4 rounded-full font-semibold hover:bg-amber-200/10 transition"
+  >
+          View Process
+        </a>
+
+
+        href="/track"
+        className="border border-amber-200/30 px-8 py-4 rounded-full font-semibold hover:bg-amber-200/10 transition"
+  >
+        Track Submission
+      </a>
+    </div>
+        </div >
+      </section >
 
       <section className="px-6 py-20">
         <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-6">
@@ -116,7 +123,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Our Products section ── */}
+  {/* ── Our Products section ── */ }
       <section className="px-6 py-24 border-t border-amber-200/10">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
@@ -316,6 +323,6 @@ export default async function HomePage() {
           Submit Your Product
         </a>
       </section>
-    </main>
+    </main >
   );
 }

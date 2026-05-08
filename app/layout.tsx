@@ -54,6 +54,10 @@ export default function RootLayout({
                 Our Products
               </a>
 
+              <a href="/track" className="hover:text-white transition">
+                Track Submission
+              </a>
+
               <div className="relative group">
                 <button className="hover:text-white transition">
                   Company ▾
