@@ -6,7 +6,6 @@ export const metadata = {
 };
 
 export default async function HomePage() {
-  // Fetch latest 3 products for the homepage preview
   const featuredProducts = await prisma.product.findMany({
     orderBy: { createdAt: "desc" },
     take: 3,
@@ -35,53 +34,42 @@ export default async function HomePage() {
           </p>
 
           <div className="fade-up-delay mt-10 flex flex-col sm:flex-row justify-center gap-4">
+            <a
+              href="/submit"
+              className="bg-amber-200 text-black px-8 py-4 rounded-full font-semibold hover:bg-amber-100 transition"
+            >
+              Submit Your Product
+            </a>
 
-            href="/submit"
-            className="bg-amber-200 text-black px-8 py-4 rounded-full font-semibold hover:bg-amber-100 transition"
-  >
-            Submit Your Product
-          </a>
+            <a
+              href="#process"
+              className="border border-amber-200/30 px-8 py-4 rounded-full font-semibold hover:bg-amber-200/10 transition"
+            >
+              View Process
+            </a>
 
-
-          href="#process"
-          className="border border-amber-200/30 px-8 py-4 rounded-full font-semibold hover:bg-amber-200/10 transition"
-  >
-          View Process
-        </a>
-
-
-        href="/track"
-        className="border border-amber-200/30 px-8 py-4 rounded-full font-semibold hover:bg-amber-200/10 transition"
-  >
-        Track Submission
-      </a>
-    </div>
-        </div >
-      </section >
+            <a
+              href="/track"
+              className="border border-amber-200/30 px-8 py-4 rounded-full font-semibold hover:bg-amber-200/10 transition"
+            >
+              Track Submission
+            </a>
+          </div>
+        </div>
+      </section>
 
       <section className="px-6 py-20">
         <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-6">
           {[
-            [
-              "Selective Review",
-              "Every submission is reviewed for fit, readiness, and market potential.",
-            ],
-            [
-              "California Focus",
-              "Focused on Orange County, Los Angeles, San Diego, and surrounding markets.",
-            ],
-            [
-              "Organized Onboarding",
-              "Approved products can move into a structured next-step review process.",
-            ],
+            ["Selective Review", "Every submission is reviewed for fit, readiness, and market potential."],
+            ["California Focus", "Focused on Orange County, Los Angeles, San Diego, and surrounding markets."],
+            ["Organized Onboarding", "Approved products can move into a structured next-step review process."],
           ].map(([title, text]) => (
             <div
               key={title}
               className="hover-lift bg-white/[0.06] border border-amber-200/10 rounded-3xl p-7 backdrop-blur-xl shadow-2xl"
             >
-              <h3 className="text-xl font-semibold text-amber-100 mb-3">
-                {title}
-              </h3>
+              <h3 className="text-xl font-semibold text-amber-100 mb-3">{title}</h3>
               <p className="text-stone-300">{text}</p>
             </div>
           ))}
@@ -91,14 +79,10 @@ export default async function HomePage() {
       <section className="px-6 py-24 border-t border-amber-200/10">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-14 items-center">
           <div>
-            <p className="text-sm uppercase tracking-[0.35em] text-amber-300/70 mb-4">
-              What We Do
-            </p>
-
+            <p className="text-sm uppercase tracking-[0.35em] text-amber-300/70 mb-4">What We Do</p>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
               We help identify products with distribution potential.
             </h2>
-
             <p className="text-stone-300 text-lg">
               Makram Distributions reviews products for potential retail,
               wholesale, and regional distribution opportunities. We focus on
@@ -108,10 +92,7 @@ export default async function HomePage() {
           </div>
 
           <div className="hover-lift bg-black/35 border border-amber-200/10 rounded-3xl p-8">
-            <h3 className="text-2xl font-bold text-amber-100 mb-5">
-              What We Look For
-            </h3>
-
+            <h3 className="text-2xl font-bold text-amber-100 mb-5">What We Look For</h3>
             <ul className="space-y-4 text-stone-300">
               <li>• Small packaged consumer products</li>
               <li>• Strong branding and presentation</li>
@@ -123,17 +104,13 @@ export default async function HomePage() {
         </div>
       </section>
 
-  {/* ── Our Products section ── */ }
+      {/* Our Products section */}
       <section className="px-6 py-24 border-t border-amber-200/10">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
             <div>
-              <p className="text-sm uppercase tracking-[0.35em] text-amber-300/70 mb-4">
-                Our Products
-              </p>
-              <h2 className="text-4xl md:text-5xl font-bold">
-                What We Distribute
-              </h2>
+              <p className="text-sm uppercase tracking-[0.35em] text-amber-300/70 mb-4">Our Products</p>
+              <h2 className="text-4xl md:text-5xl font-bold">What We Distribute</h2>
             </div>
             <Link
               href="/products"
@@ -171,12 +148,8 @@ export default async function HomePage() {
                     <span className="inline-block text-xs text-amber-300/70 border border-amber-300/20 rounded-full px-3 py-0.5 mb-3">
                       {product.origin}
                     </span>
-                    <h3 className="font-semibold text-lg text-amber-100 mb-2">
-                      {product.name}
-                    </h3>
-                    <p className="text-stone-400 text-sm leading-relaxed">
-                      {product.description}
-                    </p>
+                    <h3 className="font-semibold text-lg text-amber-100 mb-2">{product.name}</h3>
+                    <p className="text-stone-400 text-sm leading-relaxed">{product.description}</p>
                   </div>
                 </div>
               ))}
@@ -197,41 +170,18 @@ export default async function HomePage() {
       <section id="process" className="px-6 py-24 border-t border-amber-200/10">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <p className="text-sm uppercase tracking-[0.35em] text-amber-300/70 mb-4">
-              Process
-            </p>
-            <h2 className="text-4xl md:text-5xl font-bold">
-              A clear review path
-            </h2>
+            <p className="text-sm uppercase tracking-[0.35em] text-amber-300/70 mb-4">Process</p>
+            <h2 className="text-4xl md:text-5xl font-bold">A clear review path</h2>
           </div>
 
           <div className="grid md:grid-cols-4 gap-6">
             {[
-              [
-                "01",
-                "Submit",
-                "Provide your product details, documents, images, and barcode information.",
-              ],
-              [
-                "02",
-                "Review",
-                "We review the submission for market fit, presentation, and readiness.",
-              ],
-              [
-                "03",
-                "Contact",
-                "If there is a fit, we reach out for more information or next steps.",
-              ],
-              [
-                "04",
-                "Move Forward",
-                "Approved products can move into onboarding and distribution planning.",
-              ],
+              ["01", "Submit", "Provide your product details, documents, images, and barcode information."],
+              ["02", "Review", "We review the submission for market fit, presentation, and readiness."],
+              ["03", "Contact", "If there is a fit, we reach out for more information or next steps."],
+              ["04", "Move Forward", "Approved products can move into onboarding and distribution planning."],
             ].map(([number, title, text]) => (
-              <div
-                key={number}
-                className="hover-lift bg-white/[0.05] border border-amber-200/10 rounded-3xl p-6"
-              >
+              <div key={number} className="hover-lift bg-white/[0.05] border border-amber-200/10 rounded-3xl p-6">
                 <p className="text-amber-300/60 mb-3">{number}</p>
                 <h3 className="font-semibold text-amber-100 mb-3">{title}</h3>
                 <p className="text-stone-300 text-sm">{text}</p>
@@ -243,26 +193,11 @@ export default async function HomePage() {
 
       <section className="px-6 py-24">
         <div className="hover-lift max-w-6xl mx-auto bg-black/40 border border-amber-200/10 rounded-[2rem] p-10 md:p-14 text-center backdrop-blur-xl">
-          <p className="text-sm uppercase tracking-[0.35em] text-amber-300/70 mb-4">
-            Product Categories
-          </p>
-
-          <h2 className="text-4xl md:text-5xl font-bold mb-8">
-            Built for more than one category
-          </h2>
-
+          <p className="text-sm uppercase tracking-[0.35em] text-amber-300/70 mb-4">Product Categories</p>
+          <h2 className="text-4xl md:text-5xl font-bold mb-8">Built for more than one category</h2>
           <div className="grid md:grid-cols-5 gap-4 text-stone-300">
-            {[
-              "Food & Beverage",
-              "Specialty Retail",
-              "Lifestyle",
-              "Household",
-              "Emerging Brands",
-            ].map((item) => (
-              <div
-                key={item}
-                className="hover-lift border border-amber-200/10 rounded-2xl p-4 bg-white/[0.04]"
-              >
+            {["Food & Beverage", "Specialty Retail", "Lifestyle", "Household", "Emerging Brands"].map((item) => (
+              <div key={item} className="hover-lift border border-amber-200/10 rounded-2xl p-4 bg-white/[0.04]">
                 {item}
               </div>
             ))}
@@ -272,33 +207,15 @@ export default async function HomePage() {
 
       <section className="px-6 py-24 border-t border-amber-200/10">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold text-center mb-10">
-            Frequently Asked Questions
-          </h2>
-
+          <h2 className="text-4xl md:text-5xl font-bold text-center mb-10">Frequently Asked Questions</h2>
           <div className="space-y-5">
             {[
-              [
-                "Do you guarantee placement?",
-                "No. Every product is reviewed before any decision is made.",
-              ],
-              [
-                "Do you work with small brands?",
-                "Yes. We are especially interested in small and emerging products with strong potential.",
-              ],
-              [
-                "What happens after submission?",
-                "Your product is reviewed internally. If it appears to be a fit, we contact you for next steps.",
-              ],
-              [
-                "What markets do you focus on?",
-                "We focus on California, especially Orange County, Los Angeles, San Diego, and surrounding areas.",
-              ],
+              ["Do you guarantee placement?", "No. Every product is reviewed before any decision is made."],
+              ["Do you work with small brands?", "Yes. We are especially interested in small and emerging products with strong potential."],
+              ["What happens after submission?", "Your product is reviewed internally. If it appears to be a fit, we contact you for next steps."],
+              ["What markets do you focus on?", "We focus on California, especially Orange County, Los Angeles, San Diego, and surrounding areas."],
             ].map(([q, a]) => (
-              <div
-                key={q}
-                className="hover-lift bg-black/35 border border-amber-200/10 rounded-2xl p-6"
-              >
+              <div key={q} className="hover-lift bg-black/35 border border-amber-200/10 rounded-2xl p-6">
                 <h3 className="font-semibold text-amber-100 mb-2">{q}</h3>
                 <p className="text-stone-300">{a}</p>
               </div>
@@ -308,21 +225,25 @@ export default async function HomePage() {
       </section>
 
       <section className="px-6 py-28 text-center">
-        <h2 className="text-4xl md:text-5xl font-bold mb-5">
-          Ready to submit your product?
-        </h2>
-
+        <h2 className="text-4xl md:text-5xl font-bold mb-5">Ready to submit your product?</h2>
         <p className="text-stone-300 mb-9">
-          Start the application and well review it for distribution potential.
+          Start the application and we'll review it for distribution potential.
         </p>
-
-        <a
-          href="/submit"
-          className="bg-amber-200 text-black px-10 py-4 rounded-full font-semibold hover:bg-amber-100 transition"
-        >
-          Submit Your Product
-        </a>
+        <div className="flex flex-col sm:flex-row justify-center gap-4">
+          <a
+            href="/submit"
+            className="bg-amber-200 text-black px-10 py-4 rounded-full font-semibold hover:bg-amber-100 transition"
+          >
+            Submit Your Product
+          </a>
+          <a
+            href="/track"
+            className="border border-amber-200/30 px-10 py-4 rounded-full font-semibold hover:bg-amber-200/10 transition"
+          >
+            Track Submission
+          </a>
+        </div>
       </section>
-    </main >
+    </main>
   );
 }
