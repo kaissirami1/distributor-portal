@@ -25,6 +25,7 @@ model Submission {
   imageUrl     String?
   status       String   @default("pending")
   createdAt    DateTime @default(now())
+  trackingId String? @unique
 
   reviewNotes  ReviewNote[]
   statusEvents StatusEvent[]
