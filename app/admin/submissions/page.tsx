@@ -41,6 +41,7 @@ export default async function SubmissionsPage({ searchParams }: PageProps) {
             status: true,
             createdAt: true,
             category: true,
+            trackingId: true,
         },
     });
 

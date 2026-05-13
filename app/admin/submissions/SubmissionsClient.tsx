@@ -11,6 +11,7 @@ type Submission = {
     status: string;
     createdAt: string;
     category: string | null;
+    trackingId: string | null;
 };
 
 type Props = {
@@ -158,6 +159,9 @@ export function SubmissionsClient({ submissions }: Props) {
                                         <p className="font-semibold">{s.productName}</p>
                                         <p className="text-sm text-gray-400">{s.companyName || "—"}</p>
                                         <p className="text-sm text-gray-500">{s.email}</p>
+                                        {s.trackingId && (
+                                            <p className="text-xs text-zinc-600 font-mono mt-0.5">{s.trackingId}</p>
+                                        )}
                                         <span className={statusBadge(currentStatus)}>
                                             {currentStatus}
                                         </span>
