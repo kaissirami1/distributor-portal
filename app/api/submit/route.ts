@@ -12,9 +12,8 @@ async function generateTrackingId(): Promise<string> {
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
-  const {
-    name, email, phone, companyName, productName,
-    category, minimumOrder, productUrl, city, county,
+  const { name, email, phone, companyName, productName,
+    category, minimumOrder, cost, productUrl, city, county,
     notes, imageUrl, documentsUrl, barcode,
   } = body;
 
@@ -28,7 +27,7 @@ export async function POST(req: NextRequest) {
   await prisma.submission.create({
     data: {
       name, email, phone, companyName, productName,
-      category, minimumOrder, productUrl, city, county,
+      category, minimumOrder, cost, productUrl, city, county,
       notes, imageUrl, documentsUrl, barcode, trackingId,
     },
   });

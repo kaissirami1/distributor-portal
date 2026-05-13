@@ -116,6 +116,7 @@ export default function SubmitPage() {
                                 <input name="productName" placeholder="Product Name *" className="input" required />
                                 <input name="category" placeholder="Category" className="input" />
                                 <input name="minimumOrder" placeholder="Minimum Order / MOQ" className="input" />
+                                <input name="cost" placeholder="Cost per Unit (e.g. $4.99)" className="input" />
                                 <input name="productUrl" placeholder="Product Website / URL" className="input" />
                             </div>
                         </section>
