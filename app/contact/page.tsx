@@ -98,7 +98,7 @@ export default function ContactPage() {
 
                             <div className="mt-10 text-stone-400 space-y-2">
                                 <p>Email: info@makramdistributions.com</p>
-                                <p>Phone: (000) 000-0000</p>
+                                <p>Phone: (313) 888-0746</p>
                                 <p>California</p>
                             </div>
                         </div>
