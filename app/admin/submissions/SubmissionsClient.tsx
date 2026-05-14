@@ -30,13 +30,6 @@ function statusBadge(status: string) {
     }
 }
 
-const STATUS_BUTTONS = [
-    { value: "pending", label: "Pending", color: "text-yellow-400 hover:text-yellow-300" },
-    { value: "reviewing", label: "Review", color: "text-blue-400 hover:text-blue-300" },
-    { value: "approved", label: "Approve", color: "text-green-400 hover:text-green-300" },
-    { value: "rejected", label: "Reject", color: "text-red-400 hover:text-red-300" },
-];
-
 export function SubmissionsClient({ submissions }: Props) {
     const router = useRouter();
     const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -57,15 +50,6 @@ export function SubmissionsClient({ submissions }: Props) {
             const next = new Set(prev);
             next.has(id) ? next.delete(id) : next.add(id);
             return next;
-        });
-    }
-
-    async function updateSingle(id: number, status: string) {
-        setStatusMap((prev) => ({ ...prev, [id]: status }));
-        await fetch("/api/admin/submissions/update-status", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id, status }),
         });
     }
 
@@ -147,43 +131,28 @@ export function SubmissionsClient({ submissions }: Props) {
                             <div
                                 key={s.id}
                                 onClick={(e) => {
-                                    if ((e.target as HTMLElement).closest("input, button")) return;
+                                    if ((e.target as HTMLElement).closest("input")) return;
                                     router.push(`/admin/submissions/${s.id}`);
                                 }}
-                                className={`bg-zinc-900 border rounded-xl p-4 flex flex-col md:flex-row justify-between gap-4 md:items-center transition-colors cursor-pointer hover:border-zinc-600 ${selected.has(s.id) ? "border-zinc-500" : "border-zinc-800"
+                                className={`bg-zinc-900 border rounded-xl p-4 flex items-start gap-3 transition-colors cursor-pointer hover:border-zinc-600 ${selected.has(s.id) ? "border-zinc-500" : "border-zinc-800"
                                     }`}
                             >
-                                <div className="flex items-start gap-3">
-                                    <input
-                                        type="checkbox"
-                                        checked={selected.has(s.id)}
-                                        onChange={() => toggleOne(s.id)}
-                                        className="mt-1 w-4 h-4 rounded border-zinc-600 accent-white cursor-pointer flex-shrink-0"
-                                    />
-                                    <div>
-                                        <p className="font-semibold">{s.productName}</p>
-                                        <p className="text-sm text-gray-400">{s.companyName || "—"}</p>
-                                        <p className="text-sm text-gray-500">{s.email}</p>
-                                        {s.trackingId && (
-                                            <p className="text-xs text-zinc-600 font-mono mt-0.5">{s.trackingId}</p>
-                                        )}
-                                        <span className={statusBadge(currentStatus)}>
-                                            {currentStatus}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-wrap items-center gap-3 pl-7 md:pl-0">
-                                    {STATUS_BUTTONS.map(({ value, label, color }) => (
-                                        <button
-                                            key={value}
-                                            onClick={() => updateSingle(s.id, value)}
-                                            disabled={currentStatus === value}
-                                            className={`text-sm ${color} disabled:opacity-30 disabled:cursor-default`}
-                                        >
-                                            {label}
-                                        </button>
-                                    ))}
+                                <input
+                                    type="checkbox"
+                                    checked={selected.has(s.id)}
+                                    onChange={() => toggleOne(s.id)}
+                                    className="mt-1 w-4 h-4 rounded border-zinc-600 accent-white cursor-pointer flex-shrink-0"
+                                />
+                                <div>
+                                    <p className="font-semibold">{s.productName}</p>
+                                    <p className="text-sm text-gray-400">{s.companyName || "—"}</p>
+                                    <p className="text-sm text-gray-500">{s.email}</p>
+                                    {s.trackingId && (
+                                        <p className="text-xs text-zinc-600 font-mono mt-0.5">{s.trackingId}</p>
+                                    )}
+                                    <span className={statusBadge(currentStatus)}>
+                                        {currentStatus}
+                                    </span>
                                 </div>
                             </div>
                         );
