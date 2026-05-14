@@ -35,13 +35,9 @@ export default async function ProductsPage({ searchParams }: PageProps) {
                     : {},
             ],
         },
-        orderBy:
-            sortOrder === "alphabetical"
-                ? { name: "asc" }
-                : { createdAt: "desc" },
+        orderBy: sortOrder === "alphabetical" ? { name: "asc" } : { createdAt: "desc" },
     });
 
-    // Get all unique origins for the filter buttons
     const allOrigins = await prisma.product.findMany({
         select: { origin: true },
         distinct: ["origin"],
@@ -62,16 +58,51 @@ export default async function ProductsPage({ searchParams }: PageProps) {
                         What We{" "}
                         <span className="text-amber-100/80">Distribute</span>
                     </h1>
-                    <p className="text-stone-300 text-lg max-w-2xl mx-auto">
+                    <p className="text-stone-300 text-lg max-w-2xl mx-auto mb-8">
                         A curated selection of products we carry across California
                         markets. Sourced from around the world, built for retail
                         and wholesale.
                     </p>
+                    <div className="flex flex-col sm:flex-row justify-center gap-4">
+                        <a
+                            href="#products"
+                            className="bg-amber-200 text-black px-8 py-3 rounded-full font-semibold hover:bg-amber-100 transition text-sm"
+                        >
+                            Browse Products
+                        </a>
+                        <a
+                            href="mailto:info@makramdistributions.com"
+                            className="border border-amber-200/30 px-8 py-3 rounded-full font-semibold hover:bg-amber-200/10 transition text-sm"
+                        >
+                            Contact Us to Order
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            {/* How it works for retailers */}
+            <section className="px-6 pb-16 border-t border-amber-200/10 pt-16">
+                <div className="max-w-6xl mx-auto">
+                    <p className="text-sm uppercase tracking-[0.35em] text-amber-300/70 mb-4 text-center">For Retailers</p>
+                    <h2 className="text-3xl font-bold text-center mb-10">Interested in carrying one of our products?</h2>
+                    <div className="grid md:grid-cols-3 gap-6">
+                        {[
+                            ["01", "Browse", "Find a product below that fits your store or market."],
+                            ["02", "Request", "Click 'Request this Product' and we'll get back to you."],
+                            ["03", "Partner", "We handle logistics, pricing, and delivery to your location."],
+                        ].map(([num, title, text]) => (
+                            <div key={num} className="bg-white/[0.04] border border-amber-200/10 rounded-3xl p-6 text-center">
+                                <p className="text-amber-300/60 text-sm mb-2">{num}</p>
+                                <h3 className="font-semibold text-amber-100 mb-2">{title}</h3>
+                                <p className="text-stone-400 text-sm">{text}</p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </section>
 
             {/* Filters */}
-            <section className="px-6 pb-6">
+            <section id="products" className="px-6 pb-6 pt-8 border-t border-amber-200/10">
                 <div className="max-w-6xl mx-auto">
                     <form
                         action="/products"
@@ -107,7 +138,6 @@ export default async function ProductsPage({ searchParams }: PageProps) {
                         </Link>
                     </form>
 
-                    {/* Origin filter pills */}
                     {origins.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-8">
                             <Link
@@ -151,7 +181,7 @@ export default async function ProductsPage({ searchParams }: PageProps) {
                             {allProducts.map((product) => (
                                 <div
                                     key={product.id}
-                                    className="bg-white/[0.04] border border-amber-200/10 rounded-3xl overflow-hidden hover:border-amber-200/25 transition group"
+                                    className="bg-white/[0.04] border border-amber-200/10 rounded-3xl overflow-hidden hover:border-amber-200/25 transition group flex flex-col"
                                 >
                                     {product.image ? (
                                         <div className="aspect-[4/3] overflow-hidden bg-black/40">
@@ -166,21 +196,43 @@ export default async function ProductsPage({ searchParams }: PageProps) {
                                             <span className="text-stone-700 text-sm">No image</span>
                                         </div>
                                     )}
-                                    <div className="p-5">
-                                        <span className="inline-block text-xs text-amber-300/70 border border-amber-300/20 rounded-full px-3 py-0.5 mb-3">
+                                    <div className="p-5 flex flex-col flex-1">
+                                        <span className="inline-block text-xs text-amber-300/70 border border-amber-300/20 rounded-full px-3 py-0.5 mb-3 self-start">
                                             {product.origin}
                                         </span>
                                         <h3 className="font-semibold text-lg text-amber-100 mb-2">
                                             {product.name}
                                         </h3>
-                                        <p className="text-stone-400 text-sm leading-relaxed">
+                                        <p className="text-stone-400 text-sm leading-relaxed flex-1">
                                             {product.description}
                                         </p>
+                                        <a
+                                            href={`mailto:info@makramdistributions.com?subject=Product Request: ${encodeURIComponent(product.name)}&body=Hi Makram Distributions,%0A%0AI am interested in carrying ${encodeURIComponent(product.name)} in my store.%0A%0APlease send me more information about pricing and availability.%0A%0AThank you.`}
+                                            className="mt-4 w-full text-center bg-amber-200/10 border border-amber-200/20 text-amber-200 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-amber-200/20 transition"
+                                        >
+                                            Request this Product
+                                        </a>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     )}
+                </div>
+            </section>
+
+            {/* Bottom CTA */}
+            <section className="px-6 py-20 border-t border-amber-200/10 text-center">
+                <div className="max-w-2xl mx-auto">
+                    <h2 className="text-3xl md:text-4xl font-bold mb-4">Don't see what you're looking for?</h2>
+                    <p className="text-stone-400 mb-8">
+                        We're always adding new products. Reach out and tell us what your store needs.
+                    </p>
+                    <a
+                        href="mailto:info@makramdistributions.com"
+                        className="bg-amber-200 text-black px-8 py-3 rounded-full font-semibold hover:bg-amber-100 transition"
+                    >
+                        Contact Us
+                    </a>
                 </div>
             </section>
         </main>
