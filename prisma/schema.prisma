@@ -29,6 +29,7 @@ model Submission {
 
   reviewNotes  ReviewNote[]
   statusEvents StatusEvent[]
+  sales        Sale[]
 }
 model ReviewNote {
   id           Int        @id @default(autoincrement())
@@ -55,4 +56,14 @@ model Product {
   image       String?
   origin      String
   createdAt   DateTime @default(now())
+}
+model Sale {
+  id           Int        @id @default(autoincrement())
+  quantity     Int
+  revenue      Float
+  note         String?
+  createdAt    DateTime   @default(now())
+
+  submissionId Int
+  submission   Submission @relation(fields: [submissionId], references: [id])
 }

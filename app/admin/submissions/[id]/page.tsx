@@ -160,8 +160,8 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                             name="status"
                             value={s}
                             className={`px-4 py-1.5 rounded text-sm font-semibold border transition-colors ${submission.status === s
-                                    ? "border-white text-white bg-white/10 cursor-default"
-                                    : "border-zinc-700 text-gray-400 hover:border-zinc-400 hover:text-white"
+                                ? "border-white text-white bg-white/10 cursor-default"
+                                : "border-zinc-700 text-gray-400 hover:border-zinc-400 hover:text-white"
                                 }`}
                         >
                             {s.charAt(0).toUpperCase() + s.slice(1)}
