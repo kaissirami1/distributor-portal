@@ -42,6 +42,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
         include: {
             reviewNotes: { orderBy: { createdAt: "asc" } },
             statusEvents: { orderBy: { createdAt: "asc" } },
+            sales: { orderBy: { createdAt: "desc" } },
         },
     });
 
@@ -81,6 +82,27 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
         revalidatePath(`/admin/submissions/${subId}`);
     }
 
+    async function logSale(formData: FormData) {
+        "use server";
+        const subId = Number(formData.get("submissionId"));
+        const quantity = Number(formData.get("quantity"));
+        const revenue = parseFloat(formData.get("revenue") as string);
+        const note = formData.get("note") as string;
+        if (!quantity || !revenue) return;
+        await prisma.sale.create({
+            data: { submissionId: subId, quantity, revenue, note: note || null },
+        });
+        revalidatePath(`/admin/submissions/${subId}`);
+    }
+
+    async function deleteSale(formData: FormData) {
+        "use server";
+        const saleId = Number(formData.get("saleId"));
+        const subId = Number(formData.get("submissionId"));
+        await prisma.sale.delete({ where: { id: saleId } });
+        revalidatePath(`/admin/submissions/${subId}`);
+    }
+
     if (!submission) {
         return (
             <div className="p-10">
@@ -110,6 +132,9 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
         })),
     ].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
+    const totalUnits = submission.sales.reduce((sum, s) => sum + s.quantity, 0);
+    const totalRevenue = submission.sales.reduce((sum, s) => sum + s.revenue, 0);
+
     return (
         <div className="p-10 max-w-4xl">
             <Link href="/admin/submissions" className="text-gray-400 hover:text-white text-sm">
@@ -135,8 +160,8 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                             name="status"
                             value={s}
                             className={`px-4 py-1.5 rounded text-sm font-semibold border transition-colors ${submission.status === s
-                                ? "border-white text-white bg-white/10 cursor-default"
-                                : "border-zinc-700 text-gray-400 hover:border-zinc-400 hover:text-white"
+                                    ? "border-white text-white bg-white/10 cursor-default"
+                                    : "border-zinc-700 text-gray-400 hover:border-zinc-400 hover:text-white"
                                 }`}
                         >
                             {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -194,6 +219,91 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                 <DetailRow label="County" value={submission.county} />
                 <DetailRow label="Notes" value={submission.notes} />
                 <DetailRow label="Tracking ID" value={submission.trackingId || "—"} />
+            </div>
+
+            {/* ── Sales section ── */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-6">
+                <h2 className="text-xl font-bold mb-5">Sales</h2>
+
+                {/* Summary */}
+                {submission.sales.length > 0 && (
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="bg-black/40 rounded-lg p-4 text-center">
+                            <p className="text-2xl font-bold text-white">{totalUnits}</p>
+                            <p className="text-xs text-gray-500 mt-1">Total Units Sold</p>
+                        </div>
+                        <div className="bg-black/40 rounded-lg p-4 text-center">
+                            <p className="text-2xl font-bold text-green-400">${totalRevenue.toFixed(2)}</p>
+                            <p className="text-xs text-gray-500 mt-1">Total Revenue</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Log sale form */}
+                <form action={logSale} className="mb-6 space-y-3">
+                    <input type="hidden" name="submissionId" value={submission.id} />
+                    <p className="text-sm font-semibold text-gray-400">Log a Sale</p>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-1">Quantity *</label>
+                            <input
+                                name="quantity"
+                                type="number"
+                                min="1"
+                                required
+                                placeholder="e.g. 24"
+                                className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-1">Revenue ($) *</label>
+                            <input
+                                name="revenue"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                required
+                                placeholder="e.g. 120.00"
+                                className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="text-xs text-gray-500 block mb-1">Note (optional)</label>
+                        <input
+                            name="note"
+                            placeholder="e.g. Sold at Farmer's Market"
+                            className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500"
+                        />
+                    </div>
+                    <button className="bg-white text-black px-4 py-2 rounded font-semibold text-sm hover:bg-gray-100 transition">
+                        Log Sale
+                    </button>
+                </form>
+
+                {/* Sales list */}
+                {submission.sales.length === 0 ? (
+                    <p className="text-gray-600 text-sm">No sales logged yet.</p>
+                ) : (
+                    <div className="space-y-2">
+                        {submission.sales.map((sale) => (
+                            <div key={sale.id} className="flex items-center justify-between bg-black/40 rounded-lg px-4 py-3">
+                                <div>
+                                    <p className="text-sm font-medium">
+                                        {sale.quantity} units — <span className="text-green-400">${sale.revenue.toFixed(2)}</span>
+                                    </p>
+                                    {sale.note && <p className="text-xs text-gray-500 mt-0.5">{sale.note}</p>}
+                                    <p className="text-xs text-gray-600 mt-0.5">{new Date(sale.createdAt).toLocaleDateString()}</p>
+                                </div>
+                                <form action={deleteSale}>
+                                    <input type="hidden" name="saleId" value={sale.id} />
+                                    <input type="hidden" name="submissionId" value={submission.id} />
+                                    <button type="submit" className="text-zinc-600 hover:text-red-400 text-xs transition-colors">✕</button>
+                                </form>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Activity timeline */}
