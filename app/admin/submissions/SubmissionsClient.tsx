@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type Submission = {
     id: number;
@@ -38,6 +38,7 @@ const STATUS_BUTTONS = [
 ];
 
 export function SubmissionsClient({ submissions }: Props) {
+    const router = useRouter();
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [bulkLoading, setBulkLoading] = useState(false);
     const [statusMap, setStatusMap] = useState<Record<number, string>>(
@@ -145,7 +146,11 @@ export function SubmissionsClient({ submissions }: Props) {
                         return (
                             <div
                                 key={s.id}
-                                className={`bg-zinc-900 border rounded-xl p-4 flex flex-col md:flex-row justify-between gap-4 md:items-center transition-colors ${selected.has(s.id) ? "border-zinc-500" : "border-zinc-800"
+                                onClick={(e) => {
+                                    if ((e.target as HTMLElement).closest("input, button")) return;
+                                    router.push(`/admin/submissions/${s.id}`);
+                                }}
+                                className={`bg-zinc-900 border rounded-xl p-4 flex flex-col md:flex-row justify-between gap-4 md:items-center transition-colors cursor-pointer hover:border-zinc-600 ${selected.has(s.id) ? "border-zinc-500" : "border-zinc-800"
                                     }`}
                             >
                                 <div className="flex items-start gap-3">
@@ -179,12 +184,6 @@ export function SubmissionsClient({ submissions }: Props) {
                                             {label}
                                         </button>
                                     ))}
-                                    <Link
-                                        href={`/admin/submissions/${s.id}`}
-                                        className="text-white text-sm underline"
-                                    >
-                                        View
-                                    </Link>
                                 </div>
                             </div>
                         );
