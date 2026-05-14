@@ -65,7 +65,7 @@ export default function RootLayout({
               <h3 className="text-amber-100 font-semibold mb-4">Contact</h3>
               <div className="space-y-2">
                 <p>Email: info@makramdistributions.com</p>
-                <p>Phone: (000) 000-0000</p>
+                <p>Phone: (313) 888-0746</p>
                 <p>California</p>
               </div>
             </div>
