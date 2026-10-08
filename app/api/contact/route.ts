@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail, ADMIN_EMAIL } from "../../../lib/email";
 
 export async function POST(req: NextRequest) {
     const body = await req.json();
@@ -17,9 +15,8 @@ export async function POST(req: NextRequest) {
         : `General Inquiry: ${name}`;
 
     try {
-        await resend.emails.send({
-            from: "Makram Distributions <info@makramdistributions.com>",
-            to: "info@makramdistributions.com",
+        await sendEmail({
+            to: ADMIN_EMAIL,
             subject,
             html: `
         <div style="font-family:Arial,sans-serif;max-width:600px;color:#111;">
@@ -47,8 +44,7 @@ export async function POST(req: NextRequest) {
         });
 
         // Send confirmation to the sender
-        await resend.emails.send({
-            from: "Makram Distributions <info@makramdistributions.com>",
+        await sendEmail({
             to: email,
             subject: "We received your message — Makram Distributions",
             html: `

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail, ADMIN_EMAIL } from "../../../lib/email";
 
 async function generateTrackingId(): Promise<string> {
   const count = await prisma.submission.count();
@@ -34,8 +32,7 @@ export async function POST(req: NextRequest) {
 
   // Send customer confirmation email
   try {
-    await resend.emails.send({
-      from: "Makram Distributions <info@makramdistributions.com>",
+    await sendEmail({
       to: email,
       subject: "Product Submission Received",
       html: `
@@ -86,9 +83,8 @@ export async function POST(req: NextRequest) {
 
   // Send admin notification email
   try {
-    await resend.emails.send({
-      from: "Makram Distributions <info@makramdistributions.com>",
-      to: "info@makramdistributions.com",
+    await sendEmail({
+      to: ADMIN_EMAIL,
       subject: `New Submission: ${productName} (${trackingId})`,
       html: `
         <div style="background:#0a0907;padding:32px;font-family:Arial,sans-serif;color:#111;">

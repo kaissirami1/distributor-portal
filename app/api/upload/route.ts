@@ -22,7 +22,10 @@ export async function POST(req: NextRequest) {
         cloudinary.uploader
             .upload_stream(
                 {
-                    folder: "makram-distributions",
+                    // Keep test uploads out of the real folder
+                    folder: process.env.NODE_ENV === "production"
+                        ? "makram-distributions"
+                        : "makram-distributions-dev",
                     resource_type: "auto",
                 },
                 (error, result) => {

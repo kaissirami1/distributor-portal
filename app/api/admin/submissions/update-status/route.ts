@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
-import { Resend } from "resend";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendEmail } from "../../../../../lib/email";
 
 export async function POST(req: NextRequest) {
     const { id, status } = (await req.json()) as { id: number; status: string };
@@ -27,8 +25,7 @@ export async function POST(req: NextRequest) {
     ]);
 
     if (status === "approved" || status === "rejected") {
-        await resend.emails.send({
-            from: "Makram Distributions <onboarding@resend.dev>",
+        await sendEmail({
             to: current.email,
             subject: status === "approved"
                 ? "Your product submission has been approved"
