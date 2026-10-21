@@ -4,12 +4,12 @@ import { useState } from "react";
 import { ImageIcon } from "./icons";
 
 // Shows an image, or a clear placeholder if there isn't one or it fails to load
-export function SafeImage({ src, alt, className = "" }: { src?: string | null; alt: string; className?: string }) {
+export function SafeImage({ src, alt, className = "", emptyClassName }: { src?: string | null; alt: string; className?: string; emptyClassName?: string }) {
     const [broken, setBroken] = useState(false);
 
     if (!src || broken) {
         return (
-            <div className={`flex flex-col items-center justify-center gap-2 bg-zinc-900 text-zinc-500 text-sm text-center p-4 ${className}`}>
+            <div className={`flex flex-col items-center justify-center gap-2 bg-zinc-900 text-zinc-500 text-sm text-center p-4 ${emptyClassName ?? className}`}>
                 <ImageIcon className="w-8 h-8" />
                 <span>{src ? "This image couldn't be loaded" : "No image"}</span>
                 {src && (

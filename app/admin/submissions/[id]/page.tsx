@@ -104,7 +104,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
     const firstName = s.name.trim().split(/\s+/)[0];
     const emailLink = `mailto:${s.email}?subject=${encodeURIComponent(`Your product submission: ${s.productName}`)}&body=${encodeURIComponent(`Hi ${firstName},\n\nThank you for submitting ${s.productName} to ${site.name}.\n\n`)}`;
     const barcodeIsFile = !!s.barcode && /^(https?:|\/uploads)/.test(s.barcode);
-    const location = [s.city, s.county].filter(Boolean).join(", ");
+    const location = [s.city, s.county].map((x) => x?.trim()).filter(Boolean).join(", ");
 
     const activity = [
         ...s.reviewNotes.map((n) => ({ kind: "note" as const, id: n.id, createdAt: n.createdAt, content: n.content, author: n.author })),
@@ -142,7 +142,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
             <div className="grid lg:grid-cols-3 gap-6 items-start">
                 {/* ── Left: the product ── */}
                 <div className="lg:col-span-2 space-y-6 min-w-0">
-                    <SafeImage src={s.imageUrl} alt={s.productName} className="w-full aspect-video rounded-xl border border-zinc-800" />
+                    <SafeImage src={s.imageUrl} alt={s.productName} className="w-full aspect-video rounded-xl border border-zinc-800" emptyClassName="w-full h-36 rounded-xl border border-zinc-800" />
 
                     <Panel title="Product">
                         <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-5">
