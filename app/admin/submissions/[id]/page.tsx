@@ -10,6 +10,8 @@ import { ConfirmButton } from "@/components/ConfirmButton";
 import { SafeImage } from "@/components/admin/SafeImage";
 import { AdminButton, AdminLink, Detail, EmptyState, PageHeader, Panel } from "@/components/admin/ui";
 import { FileIcon, LinkIcon, MailIcon, PhoneIcon } from "@/components/admin/icons";
+import { DocumentChecklist } from "@/components/DocumentChecklist";
+import { adminDeleteDocument, adminSaveDocument, requestDocuments } from "@/lib/documentActions";
 
 type PageProps = {
     params: Promise<{ id: string }>;
@@ -30,6 +32,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                 reviewNotes: { orderBy: { createdAt: "desc" } },
                 statusEvents: { orderBy: { createdAt: "desc" } },
                 sales: { orderBy: { createdAt: "desc" } },
+                documents: { orderBy: { createdAt: "desc" } },
             },
         })
         : null;
@@ -48,11 +51,11 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
 
     async function addReviewNote(formData: FormData) {
         "use server";
-        await requireAdmin();
+        const admin = await requireAdmin();
         const content = (formData.get("content") as string).trim();
         const subId = Number(formData.get("submissionId"));
         if (!content) return;
-        await prisma.reviewNote.create({ data: { content, submissionId: subId } });
+        await prisma.reviewNote.create({ data: { content, submissionId: subId, author: admin } });
         revalidatePath(`/admin/submissions/${subId}`);
     }
 
@@ -102,7 +105,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
     const location = [s.city, s.county].filter(Boolean).join(", ");
 
     const activity = [
-        ...s.reviewNotes.map((n) => ({ kind: "note" as const, id: n.id, createdAt: n.createdAt, content: n.content })),
+        ...s.reviewNotes.map((n) => ({ kind: "note" as const, id: n.id, createdAt: n.createdAt, content: n.content, author: n.author })),
         ...s.statusEvents.map((e) => ({ kind: "status" as const, id: e.id, createdAt: e.createdAt, fromStatus: e.fromStatus, toStatus: e.toStatus })),
         { kind: "received" as const, id: 0, createdAt: s.createdAt },
     ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -176,6 +179,29 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                                 {s.notes && <span className="whitespace-pre-wrap">{s.notes}</span>}
                             </Detail>
                         </dl>
+                    </Panel>
+
+                    <Panel
+                        title="Documents"
+                        action={
+                            <form action={requestDocuments}>
+                                <input type="hidden" name="submissionId" value={s.id} />
+                                <ConfirmButton
+                                    type="submit"
+                                    message={`Email ${firstName} a link to upload the missing documents?`}
+                                    className="text-sm text-zinc-300 hover:text-white underline underline-offset-4"
+                                >
+                                    Request by email
+                                </ConfirmButton>
+                            </form>
+                        }
+                    >
+                        <DocumentChecklist
+                            admin
+                            documents={s.documents.map((d) => ({ ...d, createdAt: d.createdAt.toISOString() }))}
+                            save={adminSaveDocument.bind(null, s.id)}
+                            deleteAction={adminDeleteDocument}
+                        />
                     </Panel>
 
                     <Panel title="Contact">
@@ -315,7 +341,9 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                                             </p>
                                         )}
                                         {item.kind === "received" && <p className="text-sm text-zinc-300">Submitted through the website</p>}
-                                        <p className="text-xs text-zinc-500 mt-0.5">{formatDateTime(item.createdAt)}</p>
+                                        <p className="text-xs text-zinc-500 mt-0.5">
+                                            {item.kind === "note" && item.author !== "Admin" ? `${item.author} · ` : ""}{formatDateTime(item.createdAt)}
+                                        </p>
                                     </div>
                                 </li>
                             ))}

@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { getStatus } from "@/lib/status";
 import { Button, Card, Field, PageHeader } from "@/components/ui";
+import { DocumentChecklist } from "@/components/DocumentChecklist";
+import { sellerSaveDocument } from "@/lib/documentActions";
 
 // The status names and messages vendors see here are set in lib/status.ts
 
@@ -36,6 +38,7 @@ export default async function TrackPage({ searchParams }: PageProps) {
                 status: true,
                 createdAt: true,
                 trackingId: true,
+                documents: { orderBy: { createdAt: "desc" } },
                 sales: {
                     select: { quantity: true, revenue: true, createdAt: true },
                     orderBy: { createdAt: "desc" },
@@ -111,6 +114,21 @@ export default async function TrackPage({ searchParams }: PageProps) {
                                     {info.message}
                                 </p>
                             </div>
+
+                            {/* Documents the seller still needs to send (not shown once a product is declined) */}
+                            {submission.status !== "rejected" && submission.trackingId && email && (
+                                <Card className="p-6">
+                                    <div id="documents" className="scroll-mt-28" />
+                                    <h2 className="text-lg font-semibold text-gold-light mb-1">Documents we need</h2>
+                                    <p className="text-sm text-stone-400 mb-4">
+                                        Upload these so we can move forward. PDFs or photos, up to 4 MB each.
+                                    </p>
+                                    <DocumentChecklist
+                                        documents={submission.documents.map((d) => ({ ...d, createdAt: d.createdAt.toISOString() }))}
+                                        save={sellerSaveDocument.bind(null, email, submission.trackingId)}
+                                    />
+                                </Card>
+                            )}
 
                             {/* Sales summary, only once something has sold */}
                             {submission.sales.length > 0 && (

@@ -16,7 +16,7 @@ const links = [
     { href: "/admin/calculator", label: "Price Calculator", Icon: CalculatorIcon },
 ];
 
-export function AdminNav({ waiting }: { waiting: number }) {
+export function AdminNav({ waiting, admin }: { waiting: number; admin: string }) {
     const [open, setOpen] = useState(false);
     const pathname = usePathname();
     const isActive = (href: string) => (href === "/admin" ? pathname === "/admin" : pathname.startsWith(href));
@@ -63,6 +63,7 @@ export function AdminNav({ waiting }: { waiting: number }) {
             </div>
 
             <div className="px-3 py-4 border-t border-zinc-800 space-y-1">
+                <p className="px-3 pb-2 text-xs text-zinc-500">Logged in as <span className="text-zinc-300">{admin}</span></p>
                 <a
                     href="/"
                     target="_blank"

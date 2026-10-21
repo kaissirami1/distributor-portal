@@ -30,6 +30,7 @@ model Submission {
   reviewNotes  ReviewNote[]
   statusEvents StatusEvent[]
   sales        Sale[]
+  documents    Document[]
 }
 model ReviewNote {
   id           Int        @id @default(autoincrement())
@@ -66,4 +67,30 @@ model Sale {
 
   submissionId Int
   submission   Submission @relation(fields: [submissionId], references: [id])
+}
+
+// Paperwork a seller sends us: food license, FDA registration, insurance, etc.
+// The kinds of documents are listed in lib/documents.ts.
+model Document {
+  id           Int        @id @default(autoincrement())
+  type         String
+  url          String?
+  fileName     String?
+  value        String?
+  uploadedBy   String     @default("seller")
+  createdAt    DateTime   @default(now())
+
+  submissionId Int
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+}
+
+// Every admin login attempt, used to pause logins after too many wrong passwords
+model LoginAttempt {
+  id        Int      @id @default(autoincrement())
+  username  String
+  ip        String?
+  success   Boolean
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

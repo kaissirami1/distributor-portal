@@ -16,6 +16,11 @@ export function formatDateTime(date: Date | string) {
     });
 }
 
+// The time n minutes before now
+export function minutesAgo(n: number) {
+    return new Date(Date.now() - n * 60 * 1000);
+}
+
 // The date n days before now
 export function daysAgo(n: number) {
     return new Date(Date.now() - n * DAY);
