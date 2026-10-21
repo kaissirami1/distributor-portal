@@ -23,17 +23,15 @@ export function AdminNav({ waiting, admin }: { waiting: number; admin: string })
 
     const menu = (
         <nav className="flex flex-col h-full">
-            <div className="px-5 py-5 border-b border-zinc-800 flex items-center justify-between">
-                <Link href="/admin" onClick={() => setOpen(false)}>
-                    <img src="/logo.png" alt={site.name} className="h-10 w-auto rounded" />
-                    <span className="block text-xs text-zinc-500 mt-2">Admin Panel</span>
-                </Link>
-                <button onClick={() => setOpen(false)} className="lg:hidden p-2 text-zinc-400 hover:text-white" aria-label="Close menu">
+            {/* Phone menu only: a close button */}
+            <div className="lg:hidden px-5 py-4 border-b border-zinc-800 flex items-center justify-between">
+                <span className="text-sm text-zinc-400">Menu</span>
+                <button onClick={() => setOpen(false)} className="p-2 text-zinc-400 hover:text-white" aria-label="Close menu">
                     <CloseIcon />
                 </button>
             </div>
 
-            <div className="flex-1 px-3 py-4 space-y-1">
+            <div className="flex-1 px-3 py-4 lg:pt-8 space-y-1">
                 {links.map(({ href, label, Icon, badge }) => (
                     <Link
                         key={href}
