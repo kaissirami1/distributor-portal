@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -8,8 +9,9 @@ import { site } from "@/lib/site";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { SafeImage } from "@/components/admin/SafeImage";
+import { LinkPreviewCard, LinkPreviewLoading } from "@/components/admin/LinkPreviewCard";
 import { AdminButton, AdminLink, Detail, EmptyState, PageHeader, Panel } from "@/components/admin/ui";
-import { FileIcon, LinkIcon, MailIcon, PhoneIcon } from "@/components/admin/icons";
+import { FileIcon, MailIcon, PhoneIcon } from "@/components/admin/icons";
 import { DocumentChecklist } from "@/components/DocumentChecklist";
 import { adminDeleteDocument, adminSaveDocument, requestDocuments } from "@/lib/documentActions";
 
@@ -148,13 +150,6 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                             <Detail label="Cost per unit">{s.cost}</Detail>
                             <Detail label="Minimum order">{s.minimumOrder}</Detail>
                             <Detail label="Where they want to sell">{location}</Detail>
-                            <Detail label="Product website">
-                                {s.productUrl && (
-                                    <a href={s.productUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-blue-400 hover:underline break-all">
-                                        <LinkIcon className="w-4 h-4 shrink-0" /> {s.productUrl.replace(/^https?:\/\//, "")}
-                                    </a>
-                                )}
-                            </Detail>
                             <Detail label="Documents">
                                 {s.documentsUrl && (
                                     <a href={s.documentsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-blue-400 hover:underline">
@@ -179,6 +174,16 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                                 {s.notes && <span className="whitespace-pre-wrap">{s.notes}</span>}
                             </Detail>
                         </dl>
+                        <div className="mt-6">
+                            <p className="text-xs uppercase tracking-wide text-zinc-500 mb-2">Their website</p>
+                            {s.productUrl ? (
+                                <Suspense fallback={<LinkPreviewLoading url={s.productUrl} />}>
+                                    <LinkPreviewCard url={s.productUrl} />
+                                </Suspense>
+                            ) : (
+                                <p className="text-sm text-zinc-600">Not given</p>
+                            )}
+                        </div>
                     </Panel>
 
                     <Panel
