@@ -3,31 +3,13 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import { STATUSES, getStatus, statusInfo } from "@/lib/status";
+import { StatusBadge } from "@/components/StatusBadge";
+import { ConfirmButton } from "@/components/ConfirmButton";
 
 type PageProps = {
     params: Promise<{ id: string }>;
 };
-
-function statusBadge(status: string) {
-    const base = "inline-block px-2 py-0.5 rounded text-xs font-semibold";
-    switch (status) {
-        case "approved": return `${base} bg-green-900/50 text-green-400`;
-        case "rejected": return `${base} bg-red-900/50 text-red-400`;
-        case "reviewing": return `${base} bg-blue-900/50 text-blue-400`;
-        default: return `${base} bg-yellow-900/50 text-yellow-400`;
-    }
-}
-
-function statusDot(status: string) {
-    switch (status) {
-        case "approved": return "bg-green-500";
-        case "rejected": return "bg-red-500";
-        case "reviewing": return "bg-blue-500";
-        default: return "bg-yellow-500";
-    }
-}
-
-const STATUS_OPTIONS = ["pending", "reviewing", "approved", "rejected"];
 
 export default async function SubmissionDetailsPage({ params }: PageProps) {
     const cookieStore = await cookies();
@@ -146,7 +128,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                     <h1 className="text-3xl font-bold">{submission.productName}</h1>
                     <p className="text-gray-400 mt-1">{submission.companyName || ""}</p>
                 </div>
-                <span className={statusBadge(submission.status)}>{submission.status}</span>
+                <StatusBadge status={submission.status} />
             </div>
 
             {/* Status changer */}
@@ -154,7 +136,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                 <p className="text-sm font-semibold text-gray-400 mb-3">Change Status</p>
                 <form action={changeStatus} className="flex flex-wrap gap-2">
                     <input type="hidden" name="submissionId" value={submission.id} />
-                    {STATUS_OPTIONS.map((s) => (
+                    {STATUSES.map((s) => (
                         <button
                             key={s}
                             name="status"
@@ -164,7 +146,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                                 : "border-zinc-700 text-gray-400 hover:border-zinc-400 hover:text-white"
                                 }`}
                         >
-                            {s.charAt(0).toUpperCase() + s.slice(1)}
+                            {statusInfo[s].label}
                         </button>
                     ))}
                 </form>
@@ -207,9 +189,11 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                 <div>
                     <span className="text-sm text-gray-400 font-medium">Barcode / UPC: </span>
                     {submission.barcode ? (
-                        submission.barcode.startsWith("/uploads") ? (
+                        /^(https?:|\/uploads)/.test(submission.barcode) ? (
                             <div className="mt-2">
-                                <img src={submission.barcode} alt="barcode" className="w-64 max-h-48 object-contain border border-zinc-700 rounded bg-white p-2" />
+                                {!submission.barcode.toLowerCase().endsWith(".pdf") && (
+                                    <img src={submission.barcode} alt="barcode" className="w-64 max-h-48 object-contain border border-zinc-700 rounded bg-white p-2" />
+                                )}
                                 <a href={submission.barcode} target="_blank" className="inline-block mt-2 text-blue-400 underline text-sm">Open barcode file</a>
                             </div>
                         ) : <span className="text-sm">{submission.barcode}</span>
@@ -252,7 +236,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                                 min="1"
                                 required
                                 placeholder="e.g. 24"
-                                className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500"
+                                className="admin-input"
                             />
                         </div>
                         <div>
@@ -264,7 +248,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                                 min="0"
                                 required
                                 placeholder="e.g. 120.00"
-                                className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500"
+                                className="admin-input"
                             />
                         </div>
                     </div>
@@ -273,7 +257,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                         <input
                             name="note"
                             placeholder="e.g. Sold at Farmer's Market"
-                            className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500"
+                            className="admin-input"
                         />
                     </div>
                     <button className="bg-white text-black px-4 py-2 rounded font-semibold text-sm hover:bg-gray-100 transition">
@@ -298,7 +282,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                                 <form action={deleteSale}>
                                     <input type="hidden" name="saleId" value={sale.id} />
                                     <input type="hidden" name="submissionId" value={submission.id} />
-                                    <button type="submit" className="text-zinc-600 hover:text-red-400 text-xs transition-colors">✕</button>
+                                    <ConfirmButton message="Delete this sale?" type="submit" className="text-zinc-600 hover:text-red-400 text-xs transition-colors" title="Delete sale">✕</ConfirmButton>
                                 </form>
                             </div>
                         ))}
@@ -315,7 +299,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                     <textarea
                         name="content"
                         placeholder="Add a private review note..."
-                        className="w-full min-h-24 bg-black border border-zinc-700 rounded p-3 mb-3 resize-y focus:border-zinc-500 focus:outline-none"
+                        className="admin-input min-h-24 p-3 mb-3 resize-y"
                     />
                     <button className="bg-white text-black px-4 py-2 rounded font-semibold text-sm">
                         Save Note
@@ -338,7 +322,7 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                                                 <form action={deleteNote} className="flex-shrink-0">
                                                     <input type="hidden" name="noteId" value={item.id} />
                                                     <input type="hidden" name="submissionId" value={submission.id} />
-                                                    <button type="submit" className="text-zinc-600 hover:text-red-400 text-xs transition-colors" title="Delete note">✕</button>
+                                                    <ConfirmButton message="Delete this note?" type="submit" className="text-zinc-600 hover:text-red-400 text-xs transition-colors" title="Delete note">✕</ConfirmButton>
                                                 </form>
                                             </div>
                                             <p className="text-xs text-gray-600 mt-2">{new Date(item.createdAt).toLocaleString()}</p>
@@ -346,12 +330,12 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                                     </div>
                                 ) : (
                                     <div key={`status-${item.id}`} className="flex gap-4 items-center">
-                                        <div className={`flex-shrink-0 w-4 h-4 rounded-full ${statusDot(item.toStatus)} z-10`} />
+                                        <div className={`flex-shrink-0 w-4 h-4 rounded-full ${getStatus(item.toStatus).dot} z-10`} />
                                         <div className="flex-1 flex flex-wrap items-center gap-2 text-sm text-gray-400">
                                             <span>Status changed</span>
-                                            <span className={statusBadge(item.fromStatus)}>{item.fromStatus}</span>
+                                            <StatusBadge status={item.fromStatus} />
                                             <span>→</span>
-                                            <span className={statusBadge(item.toStatus)}>{item.toStatus}</span>
+                                            <StatusBadge status={item.toStatus} />
                                             <span className="text-xs text-gray-600 ml-auto">{new Date(item.createdAt).toLocaleString()}</span>
                                         </div>
                                     </div>

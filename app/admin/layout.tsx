@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 
 export const metadata = {
-    title: "Admin | Makram Distributions",
+    title: "Admin",
 };
 
 export default async function AdminLayout({
@@ -21,9 +21,9 @@ export default async function AdminLayout({
         <div className="min-h-screen flex bg-zinc-950 text-white">
             <aside className="w-56 flex-shrink-0 border-r border-zinc-800 flex flex-col">
                 <div className="px-5 py-5 border-b border-zinc-800">
-                    <a href="/">
+                    <Link href="/">
                         <img src="/logo.png" alt="Makram Distributions" className="h-10 w-auto" />
-                    </a>
+                    </Link>
                     <p className="text-xs text-zinc-500 mt-2">Admin Panel</p>
                 </div>
 
@@ -31,6 +31,7 @@ export default async function AdminLayout({
                     <SidebarLink href="/admin" label="Dashboard" icon="📊" />
                     <SidebarLink href="/admin/submissions" label="Submissions" icon="📋" />
                     <SidebarLink href="/admin/products" label="Products" icon="📦" />
+                    <SidebarLink href="/admin/calculator" label="Price Calculator" icon="🧮" />
                     <SidebarLink href="/admin/export" label="Export Excel" icon="📥" />
                 </nav>
 

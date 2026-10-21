@@ -1,5 +1,6 @@
 import { prisma } from "../../../lib/prisma";
 import { revalidatePath } from "next/cache";
+import { ConfirmButton } from "@/components/ConfirmButton";
 
 export default async function AdminProductsPage() {
     const products = await prisma.product.findMany({
@@ -63,7 +64,7 @@ export default async function AdminProductsPage() {
                                 name="name"
                                 required
                                 placeholder="e.g. Ashta Cream"
-                                className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500"
+                                className="admin-input"
                             />
                         </div>
                         <div>
@@ -72,7 +73,7 @@ export default async function AdminProductsPage() {
                                 name="origin"
                                 required
                                 placeholder="e.g. Lebanese, Mexican, Italian"
-                                className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500"
+                                className="admin-input"
                             />
                         </div>
                     </div>
@@ -83,7 +84,7 @@ export default async function AdminProductsPage() {
                             required
                             placeholder="Short description of the product..."
                             rows={3}
-                            className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500 resize-none"
+                            className="admin-input resize-none"
                         />
                     </div>
                     <div>
@@ -91,7 +92,7 @@ export default async function AdminProductsPage() {
                         <input
                             name="image"
                             placeholder="https://..."
-                            className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500"
+                            className="admin-input"
                         />
                     </div>
                     <button
@@ -146,7 +147,7 @@ export default async function AdminProductsPage() {
                                                 name="name"
                                                 defaultValue={p.name}
                                                 required
-                                                className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500"
+                                                className="admin-input"
                                             />
                                         </div>
                                         <div>
@@ -155,7 +156,7 @@ export default async function AdminProductsPage() {
                                                 name="origin"
                                                 defaultValue={p.origin}
                                                 required
-                                                className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500"
+                                                className="admin-input"
                                             />
                                         </div>
                                     </div>
@@ -166,7 +167,7 @@ export default async function AdminProductsPage() {
                                             defaultValue={p.description}
                                             required
                                             rows={2}
-                                            className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500 resize-none"
+                                            className="admin-input resize-none"
                                         />
                                     </div>
                                     <div>
@@ -174,7 +175,7 @@ export default async function AdminProductsPage() {
                                         <input
                                             name="image"
                                             defaultValue={p.image || ""}
-                                            className="w-full bg-black border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-zinc-500"
+                                            className="admin-input"
                                         />
                                     </div>
                                     <div className="flex gap-3">
@@ -184,16 +185,15 @@ export default async function AdminProductsPage() {
                                         >
                                             Save Changes
                                         </button>
-                                        <form action={deleteProduct}>
-                                            <input type="hidden" name="id" value={p.id} />
-                                            <button
-                                                type="submit"
-                                                className="text-red-400 hover:text-red-300 text-sm px-4 py-1.5 border border-red-900 rounded transition"
-                                                onclick="return confirm('Delete this product?')"
-                                            >
-                                                Delete
-                                            </button>
-                                        </form>
+                                        {/* Uses the same form, but runs deleteProduct instead of saving */}
+                                        <ConfirmButton
+                                            message={`Delete "${p.name}"? This can't be undone.`}
+                                            formAction={deleteProduct}
+                                            formNoValidate
+                                            className="text-red-400 hover:text-red-300 text-sm px-4 py-1.5 border border-red-900 rounded transition"
+                                        >
+                                            Delete
+                                        </ConfirmButton>
                                     </div>
                                 </form>
                             </div>

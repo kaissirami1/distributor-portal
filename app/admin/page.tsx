@@ -1,7 +1,10 @@
 import { prisma } from "../../lib/prisma";
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { DashboardCharts } from "./DashboardCharts";
+import { STATUSES, statusInfo } from "@/lib/status";
+import { StatusBadge } from "@/components/StatusBadge";
 
 export const metadata = { title: "Dashboard" };
 
@@ -11,13 +14,11 @@ export default async function AdminDashboardPage() {
     if (!isLoggedIn) redirect("/admin/login");
 
     // ── Stat counts ──────────────────────────────────────────────────────────
-    const [total, pending, reviewing, approved, rejected] = await Promise.all([
+    const [total, ...statusCounts] = await Promise.all([
         prisma.submission.count(),
-        prisma.submission.count({ where: { status: "pending" } }),
-        prisma.submission.count({ where: { status: "reviewing" } }),
-        prisma.submission.count({ where: { status: "approved" } }),
-        prisma.submission.count({ where: { status: "rejected" } }),
+        ...STATUSES.map((status) => prisma.submission.count({ where: { status } })),
     ]);
+    const counts = STATUSES.map((status, i) => ({ status, ...statusInfo[status], value: statusCounts[i] }));
 
     // ── Submissions per day (last 30 days) ───────────────────────────────────
     const thirtyDaysAgo = new Date();
@@ -77,21 +78,15 @@ export default async function AdminDashboardPage() {
             {/* ── Stat cards ── */}
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
                 <StatCard label="Total" value={total} color="text-white" />
-                <StatCard label="Pending" value={pending} color="text-yellow-400" />
-                <StatCard label="Reviewing" value={reviewing} color="text-blue-400" />
-                <StatCard label="Approved" value={approved} color="text-green-400" />
-                <StatCard label="Rejected" value={rejected} color="text-red-400" />
+                {counts.map((c) => (
+                    <StatCard key={c.status} label={c.label} value={c.value} color={c.text} />
+                ))}
             </div>
 
             {/* ── Charts ── */}
             <DashboardCharts
                 dailyData={dailyData}
-                statusData={[
-                    { label: "Pending", value: pending, color: "#facc15" },
-                    { label: "Reviewing", value: reviewing, color: "#60a5fa" },
-                    { label: "Approved", value: approved, color: "#4ade80" },
-                    { label: "Rejected", value: rejected, color: "#f87171" },
-                ]}
+                statusData={counts.map((c) => ({ label: c.label, value: c.value, color: c.chart }))}
                 topCategories={topCategories}
             />
 
@@ -99,9 +94,9 @@ export default async function AdminDashboardPage() {
             <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mt-8">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-semibold">Recent Submissions</h2>
-                    <a href="/admin/submissions" className="text-sm text-gray-400 underline">
+                    <Link href="/admin/submissions" className="text-sm text-gray-400 underline">
                         View all →
-                    </a>
+                    </Link>
                 </div>
                 <div className="space-y-3">
                     {recent.map((s) => (
@@ -115,9 +110,7 @@ export default async function AdminDashboardPage() {
                                 <p className="text-xs text-gray-500">{s.name}</p>
                             </div>
                             <div className="text-right">
-                                <span className={`text-xs font-semibold ${statusColor(s.status)}`}>
-                                    {s.status}
-                                </span>
+                                <StatusBadge status={s.status} />
                                 <p className="text-xs text-gray-600 mt-0.5">
                                     {new Date(s.createdAt).toLocaleDateString()}
                                 </p>
@@ -142,11 +135,3 @@ function StatCard({ label, value, color }: { label: string; value: number; color
     );
 }
 
-function statusColor(status: string) {
-    switch (status) {
-        case "approved": return "text-green-400";
-        case "rejected": return "text-red-400";
-        case "reviewing": return "text-blue-400";
-        default: return "text-yellow-400";
-    }
-}

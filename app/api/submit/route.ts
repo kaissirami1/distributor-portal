@@ -126,5 +126,5 @@ export async function POST(req: NextRequest) {
     console.error("Admin email error:", err);
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, trackingId });
 }

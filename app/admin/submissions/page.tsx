@@ -1,6 +1,7 @@
 import { prisma } from "../../../lib/prisma";
 import Link from "next/link";
 import { SubmissionsClient } from "./SubmissionsClient";
+import { STATUSES, statusInfo } from "@/lib/status";
 
 type PageProps = {
     searchParams: Promise<{
@@ -66,18 +67,17 @@ export default async function SubmissionsPage({ searchParams }: PageProps) {
                     name="q"
                     defaultValue={searchQuery}
                     placeholder="Search name, email, company, product..."
-                    className="bg-black/50 border border-zinc-700 rounded px-4 py-2 flex-1"
+                    className="admin-input md:flex-1"
                 />
                 <select
                     name="status"
                     defaultValue={statusFilter}
-                    className="bg-black/50 border border-zinc-700 rounded px-4 py-2"
+                    className="admin-input md:w-auto"
                 >
                     <option value="all">All Statuses</option>
-                    <option value="pending">Pending</option>
-                    <option value="reviewing">Reviewing</option>
-                    <option value="approved">Approved</option>
-                    <option value="rejected">Rejected</option>
+                    {STATUSES.map((status) => (
+                        <option key={status} value={status}>{statusInfo[status].label}</option>
+                    ))}
                 </select>
                 <button
                     type="submit"

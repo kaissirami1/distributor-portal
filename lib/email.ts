@@ -1,9 +1,11 @@
 import { Resend } from "resend";
+import { site } from "./site";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export const FROM_ADDRESS = "Makram Distributions <info@makramdistributions.com>";
-export const ADMIN_EMAIL = "info@makramdistributions.com";
+// Emails come from, and admin notifications go to, the address in lib/site.ts
+export const FROM_ADDRESS = `${site.name} <${site.email}>`;
+export const ADMIN_EMAIL = site.email;
 
 type Email = {
     to: string;

@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# old local database file and archive (not used anymore)
+/dev.db
+/app.zip

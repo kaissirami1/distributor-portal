@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { StatusBadge } from "@/components/StatusBadge";
 
 type Submission = {
     id: number;
@@ -19,16 +20,6 @@ type Props = {
     statusFilter: string;
     searchQuery: string;
 };
-
-function statusBadge(status: string) {
-    const base = "inline-block px-2 py-0.5 rounded text-xs font-semibold";
-    switch (status) {
-        case "approved": return `${base} bg-green-900/50 text-green-400`;
-        case "rejected": return `${base} bg-red-900/50 text-red-400`;
-        case "reviewing": return `${base} bg-blue-900/50 text-blue-400`;
-        default: return `${base} bg-yellow-900/50 text-yellow-400`;
-    }
-}
 
 export function SubmissionsClient({ submissions }: Props) {
     const router = useRouter();
@@ -55,19 +46,33 @@ export function SubmissionsClient({ submissions }: Props) {
 
     async function bulkUpdate(status: string) {
         if (selected.size === 0) return;
+        // Approving or rejecting emails every selected vendor, so double-check first
+        if (
+            (status === "approved" || status === "rejected") &&
+            !confirm(`Mark ${selected.size} submission(s) as ${status}? Each vendor will get an email.`)
+        ) {
+            return;
+        }
         setBulkLoading(true);
         const ids = Array.from(selected);
+        const previous = statusMap;
         setStatusMap((prev) => {
             const next = { ...prev };
             ids.forEach((id) => (next[id] = status));
             return next;
         });
-        await fetch("/api/admin/submissions/bulk-status", {
+        const res = await fetch("/api/admin/submissions/bulk-status", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ ids, status }),
         });
-        setSelected(new Set());
+        if (res.ok) {
+            setSelected(new Set());
+            router.refresh();
+        } else {
+            setStatusMap(previous);
+            alert("Couldn't update the selected submissions. Please try again.");
+        }
         setBulkLoading(false);
     }
 
@@ -150,9 +155,12 @@ export function SubmissionsClient({ submissions }: Props) {
                                     {s.trackingId && (
                                         <p className="text-xs text-zinc-600 font-mono mt-0.5">{s.trackingId}</p>
                                     )}
-                                    <span className={statusBadge(currentStatus)}>
-                                        {currentStatus}
-                                    </span>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <StatusBadge status={currentStatus} />
+                                        <span className="text-xs text-zinc-500">
+                                            {new Date(s.createdAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         );

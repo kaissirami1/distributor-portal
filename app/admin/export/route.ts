@@ -19,6 +19,7 @@ export async function GET() {
     const worksheet = workbook.addWorksheet("Submissions");
 
     worksheet.columns = [
+        { header: "Tracking ID", key: "trackingId", width: 14 },
         { header: "Date", key: "date", width: 22 },
         { header: "Name", key: "name", width: 22 },
         { header: "Email", key: "email", width: 30 },
@@ -26,6 +27,7 @@ export async function GET() {
         { header: "Company", key: "company", width: 25 },
         { header: "Product", key: "product", width: 25 },
         { header: "Category", key: "category", width: 20 },
+        { header: "Cost per Unit", key: "cost", width: 14 },
         { header: "Minimum Order", key: "minimumOrder", width: 18 },
         { header: "Product URL", key: "productUrl", width: 35 },
         { header: "Image/File", key: "imageUrl", width: 35 },
@@ -37,8 +39,9 @@ export async function GET() {
         { header: "Notes", key: "notes", width: 40 },
     ];
 
-    submissions.forEach((s: any) => {
+    submissions.forEach((s) => {
         worksheet.addRow({
+            trackingId: s.trackingId || "",
             date: new Date(s.createdAt).toLocaleString(),
             name: s.name,
             email: s.email,
@@ -46,6 +49,7 @@ export async function GET() {
             company: s.companyName || "",
             product: s.productName,
             category: s.category || "",
+            cost: s.cost || "",
             minimumOrder: s.minimumOrder || "",
             productUrl: s.productUrl || "",
             imageUrl: s.imageUrl || "",

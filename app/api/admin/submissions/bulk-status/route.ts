@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
 import { sendEmail } from "../../../../../lib/email";
+import { STATUSES, type Status } from "@/lib/status";
 
 export async function POST(req: NextRequest) {
     const { ids, status } = (await req.json()) as { ids: number[]; status: string };
 
-    if (!ids?.length || !status) {
-        return NextResponse.json({ error: "Missing ids or status" }, { status: 400 });
+    if (!ids?.length || !STATUSES.includes(status as Status)) {
+        return NextResponse.json({ error: "Missing ids or invalid status" }, { status: 400 });
     }
 
     const current = await prisma.submission.findMany({

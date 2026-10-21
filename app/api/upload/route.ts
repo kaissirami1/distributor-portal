@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const result = await new Promise((resolve, reject) => {
+    const result = await new Promise<{ secure_url: string }>((resolve, reject) => {
         cloudinary.uploader
             .upload_stream(
                 {
@@ -30,13 +30,13 @@ export async function POST(req: NextRequest) {
                 },
                 (error, result) => {
                     if (error) reject(error);
-                    else resolve(result);
+                    else resolve(result as { secure_url: string });
                 }
             )
             .end(buffer);
     });
 
     return NextResponse.json({
-        url: (result as any).secure_url,
+        url: result.secure_url,
     });
 }
