@@ -18,7 +18,7 @@ const audiences = [
       "Simple online submission process",
       "Track your submission status in real time",
       "Direct feedback from our team",
-      "Sales visibility once distributed",
+      "Upload your documents online",
     ],
     button: { href: "/submit", label: "Submit Your Product →", variant: "primary" as const },
   },

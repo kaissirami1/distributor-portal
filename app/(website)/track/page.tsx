@@ -4,7 +4,8 @@ import { Button, Card, Field, PageHeader } from "@/components/ui";
 import { DocumentChecklist } from "@/components/DocumentChecklist";
 import { sellerSaveDocument } from "@/lib/documentActions";
 
-// The status names and messages vendors see here are set in lib/status.ts
+// The status names and messages vendors see here are set in lib/status.ts.
+// Sales are deliberately not shown to sellers: revenue is what stores paid us.
 
 type PageProps = {
     searchParams: Promise<{
@@ -39,10 +40,6 @@ export default async function TrackPage({ searchParams }: PageProps) {
                 createdAt: true,
                 trackingId: true,
                 documents: { orderBy: { createdAt: "desc" } },
-                sales: {
-                    select: { quantity: true, revenue: true, createdAt: true },
-                    orderBy: { createdAt: "desc" },
-                },
             },
         });
 
@@ -51,8 +48,6 @@ export default async function TrackPage({ searchParams }: PageProps) {
         }
     }
 
-    const totalUnits = submission?.sales.reduce((sum, s) => sum + s.quantity, 0) ?? 0;
-    const totalRevenue = submission?.sales.reduce((sum, s) => sum + s.revenue, 0) ?? 0;
     const info = submission ? getStatus(submission.status) : null;
 
     return (
@@ -130,33 +125,6 @@ export default async function TrackPage({ searchParams }: PageProps) {
                                 </Card>
                             )}
 
-                            {/* Sales summary, only once something has sold */}
-                            {submission.sales.length > 0 && (
-                                <Card className="p-6">
-                                    <h2 className="text-lg font-semibold text-gold-light mb-4">Sales Summary</h2>
-
-                                    <div className="grid grid-cols-2 gap-4 mb-5">
-                                        <div className="bg-white/5 rounded-xl p-4 text-center">
-                                            <p className="text-2xl font-bold">{totalUnits}</p>
-                                            <p className="text-xs text-stone-500 mt-1">Total Units Sold</p>
-                                        </div>
-                                        <div className="bg-white/5 rounded-xl p-4 text-center">
-                                            <p className="text-2xl font-bold text-green-400">${totalRevenue.toFixed(2)}</p>
-                                            <p className="text-xs text-stone-500 mt-1">Total Revenue</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        {submission.sales.map((sale, i) => (
-                                            <div key={i} className="flex justify-between items-center text-sm py-2 border-b border-white/5 last:border-0">
-                                                <span className="text-stone-400">{formatDate(sale.createdAt, "short")}</span>
-                                                <span className="text-stone-300">{sale.quantity} units</span>
-                                                <span className="text-green-400 font-medium">${sale.revenue.toFixed(2)}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </Card>
-                            )}
                         </div>
                     )}
                 </div>
