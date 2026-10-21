@@ -1,15 +1,9 @@
 import { prisma } from "../../../lib/prisma";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { requireAdmin } from "@/lib/auth";
 import ExcelJS from "exceljs";
 
 export async function GET() {
-    const cookieStore = await cookies();
-    const isLoggedIn = cookieStore.get("admin-auth")?.value === "true";
-
-    if (!isLoggedIn) {
-        redirect("/admin/login");
-    }
+    await requireAdmin();
 
     const submissions = await prisma.submission.findMany({
         orderBy: { createdAt: "desc" },

@@ -1,359 +1,328 @@
-import { prisma } from "../../../../lib/prisma";
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
-import { STATUSES, getStatus, statusInfo } from "@/lib/status";
+import { STATUSES, getStatus, statusInfo, type Status } from "@/lib/status";
+import { changeSubmissionStatus } from "@/lib/submissions";
+import { daysSince, formatDate, formatDateTime, timeAgo, waitingTone } from "@/lib/dates";
+import { site } from "@/lib/site";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ConfirmButton } from "@/components/ConfirmButton";
+import { SafeImage } from "@/components/admin/SafeImage";
+import { AdminButton, AdminLink, Detail, EmptyState, PageHeader, Panel } from "@/components/admin/ui";
+import { FileIcon, LinkIcon, MailIcon, PhoneIcon } from "@/components/admin/icons";
 
 type PageProps = {
     params: Promise<{ id: string }>;
 };
 
+export const metadata = { title: "Submission" };
+
 export default async function SubmissionDetailsPage({ params }: PageProps) {
-    const cookieStore = await cookies();
-    const isLoggedIn = cookieStore.get("admin-auth")?.value === "true";
-    if (!isLoggedIn) redirect("/admin/login");
+    await requireAdmin();
 
     const { id } = await params;
     const submissionId = Number(id);
 
-    const submission = await prisma.submission.findUnique({
-        where: { id: submissionId },
-        include: {
-            reviewNotes: { orderBy: { createdAt: "asc" } },
-            statusEvents: { orderBy: { createdAt: "asc" } },
-            sales: { orderBy: { createdAt: "desc" } },
-        },
-    });
+    const submission = Number.isInteger(submissionId)
+        ? await prisma.submission.findUnique({
+            where: { id: submissionId },
+            include: {
+                reviewNotes: { orderBy: { createdAt: "desc" } },
+                statusEvents: { orderBy: { createdAt: "desc" } },
+                sales: { orderBy: { createdAt: "desc" } },
+            },
+        })
+        : null;
+
+    // ── Actions on this page ────────────────────────────────────────────────
+
+    async function changeStatus(formData: FormData) {
+        "use server";
+        await requireAdmin();
+        const status = formData.get("status") as string;
+        if (!STATUSES.includes(status as Status)) return;
+        await changeSubmissionStatus([Number(formData.get("submissionId"))], status as Status);
+        revalidatePath(`/admin/submissions/${formData.get("submissionId")}`);
+        revalidatePath("/admin", "layout");
+    }
 
     async function addReviewNote(formData: FormData) {
         "use server";
-        const content = formData.get("content") as string;
+        await requireAdmin();
+        const content = (formData.get("content") as string).trim();
         const subId = Number(formData.get("submissionId"));
-        if (!content.trim()) return;
+        if (!content) return;
         await prisma.reviewNote.create({ data: { content, submissionId: subId } });
         revalidatePath(`/admin/submissions/${subId}`);
     }
 
-    async function changeStatus(formData: FormData) {
-        "use server";
-        const subId = Number(formData.get("submissionId"));
-        const newStatus = formData.get("status") as string;
-        const current = await prisma.submission.findUnique({
-            where: { id: subId },
-            select: { status: true },
-        });
-        if (!current || current.status === newStatus) return;
-        await prisma.$transaction([
-            prisma.submission.update({ where: { id: subId }, data: { status: newStatus } }),
-            prisma.statusEvent.create({
-                data: { submissionId: subId, fromStatus: current.status, toStatus: newStatus },
-            }),
-        ]);
-        revalidatePath(`/admin/submissions/${subId}`);
-        revalidatePath("/admin/submissions");
-    }
-
     async function deleteNote(formData: FormData) {
         "use server";
-        const noteId = Number(formData.get("noteId"));
-        const subId = Number(formData.get("submissionId"));
-        await prisma.reviewNote.delete({ where: { id: noteId } });
-        revalidatePath(`/admin/submissions/${subId}`);
+        await requireAdmin();
+        await prisma.reviewNote.delete({ where: { id: Number(formData.get("noteId")) } });
+        revalidatePath(`/admin/submissions/${formData.get("submissionId")}`);
     }
 
     async function logSale(formData: FormData) {
         "use server";
+        await requireAdmin();
         const subId = Number(formData.get("submissionId"));
         const quantity = Number(formData.get("quantity"));
         const revenue = parseFloat(formData.get("revenue") as string);
-        const note = formData.get("note") as string;
+        const note = (formData.get("note") as string).trim();
         if (!quantity || !revenue) return;
-        await prisma.sale.create({
-            data: { submissionId: subId, quantity, revenue, note: note || null },
-        });
+        await prisma.sale.create({ data: { submissionId: subId, quantity, revenue, note: note || null } });
         revalidatePath(`/admin/submissions/${subId}`);
     }
 
     async function deleteSale(formData: FormData) {
         "use server";
-        const saleId = Number(formData.get("saleId"));
-        const subId = Number(formData.get("submissionId"));
-        await prisma.sale.delete({ where: { id: saleId } });
-        revalidatePath(`/admin/submissions/${subId}`);
+        await requireAdmin();
+        await prisma.sale.delete({ where: { id: Number(formData.get("saleId")) } });
+        revalidatePath(`/admin/submissions/${formData.get("submissionId")}`);
     }
 
     if (!submission) {
         return (
-            <div className="p-10">
-                <p>Submission not found.</p>
-                <Link href="/admin/submissions" className="underline">Back to submissions</Link>
-            </div>
+            <EmptyState
+                title="Submission not found"
+                text="It may have been removed, or the link is wrong."
+                action={<AdminLink href="/admin/submissions">Back to submissions</AdminLink>}
+            />
         );
     }
 
-    type TimelineItem =
-        | { kind: "note"; id: number; content: string; createdAt: Date }
-        | { kind: "status"; id: number; fromStatus: string; toStatus: string; createdAt: Date };
+    // ── What to show ────────────────────────────────────────────────────────
 
-    const timeline: TimelineItem[] = [
-        ...submission.reviewNotes.map((n) => ({
-            kind: "note" as const,
-            id: n.id,
-            content: n.content,
-            createdAt: n.createdAt,
-        })),
-        ...submission.statusEvents.map((e) => ({
-            kind: "status" as const,
-            id: e.id,
-            fromStatus: e.fromStatus,
-            toStatus: e.toStatus,
-            createdAt: e.createdAt,
-        })),
-    ].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    const s = submission;
+    const days = daysSince(s.createdAt);
+    const firstName = s.name.trim().split(/\s+/)[0];
+    const emailLink = `mailto:${s.email}?subject=${encodeURIComponent(`Your product submission: ${s.productName}`)}&body=${encodeURIComponent(`Hi ${firstName},\n\nThank you for submitting ${s.productName} to ${site.name}.\n\n`)}`;
+    const barcodeIsFile = !!s.barcode && /^(https?:|\/uploads)/.test(s.barcode);
+    const location = [s.city, s.county].filter(Boolean).join(", ");
 
-    const totalUnits = submission.sales.reduce((sum, s) => sum + s.quantity, 0);
-    const totalRevenue = submission.sales.reduce((sum, s) => sum + s.revenue, 0);
+    const activity = [
+        ...s.reviewNotes.map((n) => ({ kind: "note" as const, id: n.id, createdAt: n.createdAt, content: n.content })),
+        ...s.statusEvents.map((e) => ({ kind: "status" as const, id: e.id, createdAt: e.createdAt, fromStatus: e.fromStatus, toStatus: e.toStatus })),
+        { kind: "received" as const, id: 0, createdAt: s.createdAt },
+    ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-    return (
-        <div className="p-10 max-w-4xl">
-            <Link href="/admin/submissions" className="text-gray-400 hover:text-white text-sm">
-                ← Back to submissions
-            </Link>
+    const totalUnits = s.sales.reduce((sum, x) => sum + x.quantity, 0);
+    const totalRevenue = s.sales.reduce((sum, x) => sum + x.revenue, 0);
 
-            <div className="flex flex-wrap items-start justify-between gap-4 mt-6 mb-4">
-                <div>
-                    <h1 className="text-3xl font-bold">{submission.productName}</h1>
-                    <p className="text-gray-400 mt-1">{submission.companyName || ""}</p>
-                </div>
-                <StatusBadge status={submission.status} />
-            </div>
-
-            {/* Status changer */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 mb-6">
-                <p className="text-sm font-semibold text-gray-400 mb-3">Change Status</p>
-                <form action={changeStatus} className="flex flex-wrap gap-2">
-                    <input type="hidden" name="submissionId" value={submission.id} />
-                    {STATUSES.map((s) => (
-                        <button
-                            key={s}
-                            name="status"
-                            value={s}
-                            className={`px-4 py-1.5 rounded text-sm font-semibold border transition-colors ${submission.status === s
-                                ? "border-white text-white bg-white/10 cursor-default"
-                                : "border-zinc-700 text-gray-400 hover:border-zinc-400 hover:text-white"
-                                }`}
-                        >
-                            {statusInfo[s].label}
-                        </button>
-                    ))}
-                </form>
-            </div>
-
-            {/* Product image */}
-            {submission.imageUrl && (
-                <img
-                    src={submission.imageUrl}
-                    alt="product"
-                    className="w-full max-h-80 object-cover rounded-xl mb-6 border border-zinc-700"
-                />
-            )}
-
-            {/* Details */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-3 mb-6">
-                <DetailRow label="Name" value={submission.name} />
-                <DetailRow label="Email" value={
-                    <a href={`mailto:${submission.email}`} className="text-blue-400 underline">{submission.email}</a>
-                } />
-                <DetailRow label="Phone" value={
-                    submission.phone
-                        ? <a href={`tel:${submission.phone}`} className="text-blue-400 underline">{submission.phone}</a>
-                        : "—"
-                } />
-                <DetailRow label="Company" value={submission.companyName} />
-                <DetailRow label="Category" value={submission.category} />
-                <DetailRow label="Cost" value={submission.cost} />
-                <DetailRow label="Min. Order" value={submission.minimumOrder} />
-                <DetailRow label="Product URL" value={
-                    submission.productUrl
-                        ? <a href={submission.productUrl} target="_blank" className="text-blue-400 underline">Open product link</a>
-                        : "—"
-                } />
-                <DetailRow label="Documents" value={
-                    submission.documentsUrl
-                        ? <a href={submission.documentsUrl} target="_blank" className="inline-block bg-white text-black px-3 py-1 rounded text-sm font-semibold">Download / Open File</a>
-                        : "—"
-                } />
-                <div>
-                    <span className="text-sm text-gray-400 font-medium">Barcode / UPC: </span>
-                    {submission.barcode ? (
-                        /^(https?:|\/uploads)/.test(submission.barcode) ? (
-                            <div className="mt-2">
-                                {!submission.barcode.toLowerCase().endsWith(".pdf") && (
-                                    <img src={submission.barcode} alt="barcode" className="w-64 max-h-48 object-contain border border-zinc-700 rounded bg-white p-2" />
-                                )}
-                                <a href={submission.barcode} target="_blank" className="inline-block mt-2 text-blue-400 underline text-sm">Open barcode file</a>
-                            </div>
-                        ) : <span className="text-sm">{submission.barcode}</span>
-                    ) : <span className="text-sm text-gray-600">—</span>}
-                </div>
-                <DetailRow label="City" value={submission.city} />
-                <DetailRow label="County" value={submission.county} />
-                <DetailRow label="Notes" value={submission.notes} />
-                <DetailRow label="Tracking ID" value={submission.trackingId || "—"} />
-            </div>
-
-            {/* ── Sales section ── */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-6">
-                <h2 className="text-xl font-bold mb-5">Sales</h2>
-
-                {/* Summary */}
-                {submission.sales.length > 0 && (
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                        <div className="bg-black/40 rounded-lg p-4 text-center">
-                            <p className="text-2xl font-bold text-white">{totalUnits}</p>
-                            <p className="text-xs text-gray-500 mt-1">Total Units Sold</p>
-                        </div>
-                        <div className="bg-black/40 rounded-lg p-4 text-center">
-                            <p className="text-2xl font-bold text-green-400">${totalRevenue.toFixed(2)}</p>
-                            <p className="text-xs text-gray-500 mt-1">Total Revenue</p>
-                        </div>
-                    </div>
-                )}
-
-                {/* Log sale form */}
-                <form action={logSale} className="mb-6 space-y-3">
-                    <input type="hidden" name="submissionId" value={submission.id} />
-                    <p className="text-sm font-semibold text-gray-400">Log a Sale</p>
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="text-xs text-gray-500 block mb-1">Quantity *</label>
-                            <input
-                                name="quantity"
-                                type="number"
-                                min="1"
-                                required
-                                placeholder="e.g. 24"
-                                className="admin-input"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-xs text-gray-500 block mb-1">Revenue ($) *</label>
-                            <input
-                                name="revenue"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                required
-                                placeholder="e.g. 120.00"
-                                className="admin-input"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="text-xs text-gray-500 block mb-1">Note (optional)</label>
-                        <input
-                            name="note"
-                            placeholder="e.g. Sold at Farmer's Market"
-                            className="admin-input"
-                        />
-                    </div>
-                    <button className="bg-white text-black px-4 py-2 rounded font-semibold text-sm hover:bg-gray-100 transition">
-                        Log Sale
-                    </button>
-                </form>
-
-                {/* Sales list */}
-                {submission.sales.length === 0 ? (
-                    <p className="text-gray-600 text-sm">No sales logged yet.</p>
-                ) : (
-                    <div className="space-y-2">
-                        {submission.sales.map((sale) => (
-                            <div key={sale.id} className="flex items-center justify-between bg-black/40 rounded-lg px-4 py-3">
-                                <div>
-                                    <p className="text-sm font-medium">
-                                        {sale.quantity} units — <span className="text-green-400">${sale.revenue.toFixed(2)}</span>
-                                    </p>
-                                    {sale.note && <p className="text-xs text-gray-500 mt-0.5">{sale.note}</p>}
-                                    <p className="text-xs text-gray-600 mt-0.5">{new Date(sale.createdAt).toLocaleDateString()}</p>
-                                </div>
-                                <form action={deleteSale}>
-                                    <input type="hidden" name="saleId" value={sale.id} />
-                                    <input type="hidden" name="submissionId" value={submission.id} />
-                                    <ConfirmButton message="Delete this sale?" type="submit" className="text-zinc-600 hover:text-red-400 text-xs transition-colors" title="Delete sale">✕</ConfirmButton>
-                                </form>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Activity timeline */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-                <h2 className="text-xl font-bold mb-5">Activity</h2>
-
-                <form action={addReviewNote} className="mb-6">
-                    <input type="hidden" name="submissionId" value={submission.id} />
-                    <textarea
-                        name="content"
-                        placeholder="Add a private review note..."
-                        className="admin-input min-h-24 p-3 mb-3 resize-y"
-                    />
-                    <button className="bg-white text-black px-4 py-2 rounded font-semibold text-sm">
-                        Save Note
-                    </button>
-                </form>
-
-                {timeline.length === 0 ? (
-                    <p className="text-gray-500 text-sm">No activity yet.</p>
-                ) : (
-                    <div className="relative">
-                        <div className="absolute left-[7px] top-2 bottom-2 w-px bg-zinc-800" />
-                        <div className="space-y-5">
-                            {timeline.map((item) =>
-                                item.kind === "note" ? (
-                                    <div key={`note-${item.id}`} className="flex gap-4">
-                                        <div className="flex-shrink-0 w-4 h-4 rounded-full bg-zinc-700 border border-zinc-500 mt-1 z-10" />
-                                        <div className="flex-1 bg-black border border-zinc-800 rounded-lg p-3">
-                                            <div className="flex items-start justify-between gap-2">
-                                                <p className="text-sm leading-relaxed">{item.content}</p>
-                                                <form action={deleteNote} className="flex-shrink-0">
-                                                    <input type="hidden" name="noteId" value={item.id} />
-                                                    <input type="hidden" name="submissionId" value={submission.id} />
-                                                    <ConfirmButton message="Delete this note?" type="submit" className="text-zinc-600 hover:text-red-400 text-xs transition-colors" title="Delete note">✕</ConfirmButton>
-                                                </form>
-                                            </div>
-                                            <p className="text-xs text-gray-600 mt-2">{new Date(item.createdAt).toLocaleString()}</p>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div key={`status-${item.id}`} className="flex gap-4 items-center">
-                                        <div className={`flex-shrink-0 w-4 h-4 rounded-full ${getStatus(item.toStatus).dot} z-10`} />
-                                        <div className="flex-1 flex flex-wrap items-center gap-2 text-sm text-gray-400">
-                                            <span>Status changed</span>
-                                            <StatusBadge status={item.fromStatus} />
-                                            <span>→</span>
-                                            <StatusBadge status={item.toStatus} />
-                                            <span className="text-xs text-gray-600 ml-auto">{new Date(item.createdAt).toLocaleString()}</span>
-                                        </div>
-                                    </div>
-                                )
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
-function DetailRow({ label, value }: { label: string; value: React.ReactNode | string | null | undefined }) {
     return (
         <div>
-            <span className="text-sm text-gray-400 font-medium">{label}: </span>
-            <span className="text-sm">{value ?? <span className="text-gray-600">—</span>}</span>
+            <PageHeader
+                back={{ href: "/admin/submissions", label: "All submissions" }}
+                title={s.productName}
+                description={
+                    <div className="space-y-1">
+                        <p>{s.companyName || s.name}</p>
+                        <p className="text-sm">
+                            Received {formatDate(s.createdAt)} ({timeAgo(s.createdAt)})
+                            {s.status === "pending" && days > 0 && (
+                                <span className={`ml-2 font-medium ${waitingTone(days)}`}>· waiting for your reply for {days} day{days === 1 ? "" : "s"}</span>
+                            )}
+                        </p>
+                    </div>
+                }
+                actions={
+                    <>
+                        <AdminLink href={emailLink} variant="primary"><MailIcon className="w-4 h-4" /> Email {firstName}</AdminLink>
+                        {s.phone && <AdminLink href={`tel:${s.phone}`}><PhoneIcon className="w-4 h-4" /> Call</AdminLink>}
+                    </>
+                }
+            />
+
+            <div className="grid lg:grid-cols-3 gap-6 items-start">
+                {/* ── Left: the product ── */}
+                <div className="lg:col-span-2 space-y-6 min-w-0">
+                    <SafeImage src={s.imageUrl} alt={s.productName} className="w-full aspect-video rounded-xl border border-zinc-800" />
+
+                    <Panel title="Product">
+                        <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-5">
+                            <Detail label="Category">{s.category}</Detail>
+                            <Detail label="Cost per unit">{s.cost}</Detail>
+                            <Detail label="Minimum order">{s.minimumOrder}</Detail>
+                            <Detail label="Where they want to sell">{location}</Detail>
+                            <Detail label="Product website">
+                                {s.productUrl && (
+                                    <a href={s.productUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-blue-400 hover:underline break-all">
+                                        <LinkIcon className="w-4 h-4 shrink-0" /> {s.productUrl.replace(/^https?:\/\//, "")}
+                                    </a>
+                                )}
+                            </Detail>
+                            <Detail label="Documents">
+                                {s.documentsUrl && (
+                                    <a href={s.documentsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-blue-400 hover:underline">
+                                        <FileIcon className="w-4 h-4 shrink-0" /> Open document
+                                    </a>
+                                )}
+                            </Detail>
+                            <Detail label="Barcode / UPC">
+                                {s.barcode && (barcodeIsFile ? (
+                                    <span className="block space-y-2">
+                                        {!s.barcode.toLowerCase().endsWith(".pdf") && (
+                                            <img src={s.barcode} alt="Barcode" className="w-56 max-h-40 object-contain rounded bg-white p-2" />
+                                        )}
+                                        <a href={s.barcode} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">Open barcode file</a>
+                                    </span>
+                                ) : (
+                                    <span className="font-mono">{s.barcode}</span>
+                                ))}
+                            </Detail>
+                            <Detail label="Tracking ID"><span className="font-mono">{s.trackingId}</span></Detail>
+                            <Detail label="Their notes" wide>
+                                {s.notes && <span className="whitespace-pre-wrap">{s.notes}</span>}
+                            </Detail>
+                        </dl>
+                    </Panel>
+
+                    <Panel title="Contact">
+                        <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-5">
+                            <Detail label="Name">{s.name}</Detail>
+                            <Detail label="Company">{s.companyName}</Detail>
+                            <Detail label="Email">
+                                <a href={emailLink} className="text-blue-400 hover:underline">{s.email}</a>
+                            </Detail>
+                            <Detail label="Phone">
+                                {s.phone && <a href={`tel:${s.phone}`} className="text-blue-400 hover:underline">{s.phone}</a>}
+                            </Detail>
+                        </dl>
+                    </Panel>
+
+                    {/* Sales */}
+                    <Panel title="Sales">
+                        {s.sales.length > 0 && (
+                            <div className="grid grid-cols-2 gap-4 mb-5">
+                                <div className="bg-black/40 rounded-lg p-4">
+                                    <p className="text-2xl font-bold tabular-nums">{totalUnits}</p>
+                                    <p className="text-xs text-zinc-500 mt-1">Units sold</p>
+                                </div>
+                                <div className="bg-black/40 rounded-lg p-4">
+                                    <p className="text-2xl font-bold tabular-nums text-green-400">${totalRevenue.toFixed(2)}</p>
+                                    <p className="text-xs text-zinc-500 mt-1">Revenue</p>
+                                </div>
+                            </div>
+                        )}
+
+                        <form action={logSale} className="grid sm:grid-cols-[1fr_1fr_2fr_auto] gap-3 items-end mb-5">
+                            <input type="hidden" name="submissionId" value={s.id} />
+                            <label className="text-xs text-zinc-500">Units *
+                                <input name="quantity" type="number" min="1" required placeholder="24" className="admin-input mt-1" />
+                            </label>
+                            <label className="text-xs text-zinc-500">Revenue ($) *
+                                <input name="revenue" type="number" step="0.01" min="0" required placeholder="120.00" className="admin-input mt-1" />
+                            </label>
+                            <label className="text-xs text-zinc-500">Note
+                                <input name="note" placeholder="e.g. Anaheim market" className="admin-input mt-1" />
+                            </label>
+                            <AdminButton type="submit">Log sale</AdminButton>
+                        </form>
+
+                        {s.sales.length === 0 ? (
+                            <p className="text-sm text-zinc-500">No sales logged yet.</p>
+                        ) : (
+                            <ul className="divide-y divide-zinc-800">
+                                {s.sales.map((sale) => (
+                                    <li key={sale.id} className="flex items-center justify-between gap-3 py-2.5">
+                                        <div>
+                                            <p className="text-sm font-medium">
+                                                {sale.quantity} units · <span className="text-green-400">${sale.revenue.toFixed(2)}</span>
+                                            </p>
+                                            <p className="text-xs text-zinc-500">{formatDate(sale.createdAt)}{sale.note ? ` · ${sale.note}` : ""}</p>
+                                        </div>
+                                        <form action={deleteSale}>
+                                            <input type="hidden" name="saleId" value={sale.id} />
+                                            <input type="hidden" name="submissionId" value={s.id} />
+                                            <ConfirmButton message="Delete this sale?" type="submit" className="text-xs text-zinc-500 hover:text-red-400 px-2 py-1">
+                                                Delete
+                                            </ConfirmButton>
+                                        </form>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </Panel>
+                </div>
+
+                {/* ── Right: decision and notes ── */}
+                <div className="space-y-6 min-w-0 lg:sticky lg:top-6">
+                    <Panel title="Status" action={<StatusBadge status={s.status} />}>
+                        <form action={changeStatus} className="grid grid-cols-2 gap-2">
+                            <input type="hidden" name="submissionId" value={s.id} />
+                            {STATUSES.map((status) => {
+                                const current = s.status === status;
+                                const classes = `px-3 py-2 rounded-lg text-sm font-semibold border transition ${current
+                                    ? "border-white bg-white/10 text-white cursor-default"
+                                    : "border-zinc-700 text-zinc-300 hover:border-zinc-400 hover:text-white"}`;
+                                const label = statusInfo[status].label;
+                                // Approving or rejecting emails the vendor, so ask first
+                                return status === "approved" || status === "rejected" ? (
+                                    <ConfirmButton
+                                        key={status}
+                                        type="submit"
+                                        name="status"
+                                        value={status}
+                                        disabled={current}
+                                        message={`Mark as ${label.toLowerCase()}? ${firstName} will get an email at ${s.email}.`}
+                                        className={classes}
+                                    >
+                                        {label}
+                                    </ConfirmButton>
+                                ) : (
+                                    <button key={status} type="submit" name="status" value={status} disabled={current} className={classes}>
+                                        {label}
+                                    </button>
+                                );
+                            })}
+                        </form>
+                        <p className="text-xs text-zinc-500 mt-3">Approved and Rejected send {firstName} an email automatically.</p>
+                    </Panel>
+
+                    <Panel title="Notes & activity">
+                        <form action={addReviewNote} className="mb-5">
+                            <input type="hidden" name="submissionId" value={s.id} />
+                            <textarea
+                                name="content"
+                                rows={3}
+                                placeholder="Private note, e.g. 'Called, sending samples next week'"
+                                className="admin-input resize-y"
+                            />
+                            <AdminButton type="submit" className="mt-2 w-full">Save note</AdminButton>
+                        </form>
+
+                        <ol className="space-y-4">
+                            {activity.map((item) => (
+                                <li key={`${item.kind}-${item.id}`} className="flex gap-3">
+                                    <span className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${item.kind === "status" ? getStatus(item.toStatus).dot : item.kind === "note" ? "bg-zinc-400" : "bg-zinc-600"}`} />
+                                    <div className="flex-1 min-w-0">
+                                        {item.kind === "note" && (
+                                            <div className="flex items-start justify-between gap-2">
+                                                <p className="text-sm whitespace-pre-wrap">{item.content}</p>
+                                                <form action={deleteNote}>
+                                                    <input type="hidden" name="noteId" value={item.id} />
+                                                    <input type="hidden" name="submissionId" value={s.id} />
+                                                    <ConfirmButton message="Delete this note?" type="submit" className="text-xs text-zinc-600 hover:text-red-400" title="Delete note">
+                                                        ✕
+                                                    </ConfirmButton>
+                                                </form>
+                                            </div>
+                                        )}
+                                        {item.kind === "status" && (
+                                            <p className="text-sm text-zinc-300 flex flex-wrap items-center gap-1.5">
+                                                Status <StatusBadge status={item.fromStatus} /> → <StatusBadge status={item.toStatus} />
+                                            </p>
+                                        )}
+                                        {item.kind === "received" && <p className="text-sm text-zinc-300">Submitted through the website</p>}
+                                        <p className="text-xs text-zinc-500 mt-0.5">{formatDateTime(item.createdAt)}</p>
+                                    </div>
+                                </li>
+                            ))}
+                        </ol>
+                    </Panel>
+                </div>
+            </div>
         </div>
     );
 }

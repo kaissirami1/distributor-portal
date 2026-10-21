@@ -1,206 +1,123 @@
-import { prisma } from "../../../lib/prisma";
-import { revalidatePath } from "next/cache";
-import { ConfirmButton } from "@/components/ConfirmButton";
+import { requireAdmin } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import Link from "next/link";
+import { SafeImage } from "@/components/admin/SafeImage";
+import { AdminLink, EmptyState, PageHeader } from "@/components/admin/ui";
+import { CheckIcon, PlusIcon, SearchIcon } from "@/components/admin/icons";
+import { formatDate } from "@/lib/dates";
 
-export default async function AdminProductsPage() {
-    const products = await prisma.product.findMany({
-        orderBy: { createdAt: "desc" },
-    });
+export const metadata = { title: "Products" };
 
-    async function addProduct(formData: FormData) {
-        "use server";
-        const name = formData.get("name") as string;
-        const description = formData.get("description") as string;
-        const origin = formData.get("origin") as string;
-        const image = formData.get("image") as string;
-        if (!name.trim() || !description.trim() || !origin.trim()) return;
-        await prisma.product.create({
-            data: { name, description, origin, image: image || null },
-        });
-        revalidatePath("/admin/products");
-        revalidatePath("/products");
-    }
+type PageProps = {
+    searchParams: Promise<{ q?: string; origin?: string; saved?: string; deleted?: string }>;
+};
 
-    async function updateProduct(formData: FormData) {
-        "use server";
-        const id = Number(formData.get("id"));
-        const name = formData.get("name") as string;
-        const description = formData.get("description") as string;
-        const origin = formData.get("origin") as string;
-        const image = formData.get("image") as string;
-        await prisma.product.update({
-            where: { id },
-            data: { name, description, origin, image: image || null },
-        });
-        revalidatePath("/admin/products");
-        revalidatePath("/products");
-    }
+export default async function AdminProductsPage({ searchParams }: PageProps) {
+    await requireAdmin();
+    const { q, origin, saved, deleted } = await searchParams;
+    const searchQuery = q?.trim() || "";
+    const originFilter = origin || "all";
 
-    async function deleteProduct(formData: FormData) {
-        "use server";
-        const id = Number(formData.get("id"));
-        await prisma.product.delete({ where: { id } });
-        revalidatePath("/admin/products");
-        revalidatePath("/products");
-    }
+    const [products, allOrigins, total] = await Promise.all([
+        prisma.product.findMany({
+            where: {
+                AND: [
+                    originFilter !== "all" ? { origin: originFilter } : {},
+                    searchQuery
+                        ? {
+                            OR: [
+                                { name: { contains: searchQuery, mode: "insensitive" } },
+                                { description: { contains: searchQuery, mode: "insensitive" } },
+                                { origin: { contains: searchQuery, mode: "insensitive" } },
+                            ],
+                        }
+                        : {},
+                ],
+            },
+            orderBy: { createdAt: "desc" },
+        }),
+        prisma.product.findMany({ select: { origin: true }, distinct: ["origin"], orderBy: { origin: "asc" } }),
+        prisma.product.count(),
+    ]);
+
+    const originHref = (o: string) => {
+        const params = new URLSearchParams();
+        if (o !== "all") params.set("origin", o);
+        if (searchQuery) params.set("q", searchQuery);
+        const query = params.toString();
+        return `/admin/products${query ? `?${query}` : ""}`;
+    };
 
     return (
-        <div className="p-8 max-w-5xl">
-            <div className="flex items-center justify-between mb-8">
-                <h1 className="text-3xl font-bold">Products</h1>
-                <a href="/products" target="_blank" className="text-sm text-gray-400 underline">
-                    View public page ↗
-                </a>
-            </div>
+        <div>
+            <PageHeader
+                title="Products"
+                description={`${total} product${total === 1 ? "" : "s"} in your catalog. They show on your website's products page, newest first.`}
+                actions={
+                    <>
+                        <AdminLink href="/products" newTab>View on website</AdminLink>
+                        <AdminLink href="/admin/products/new" variant="primary"><PlusIcon className="w-4 h-4" /> Add product</AdminLink>
+                    </>
+                }
+            />
 
-            {/* Add product form */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-8">
-                <h2 className="text-lg font-semibold mb-4">Add Product</h2>
-                <form action={addProduct} className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-sm text-gray-400 block mb-1">Product Name *</label>
-                            <input
-                                name="name"
-                                required
-                                placeholder="e.g. Ashta Cream"
-                                className="admin-input"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-sm text-gray-400 block mb-1">Origin / Cuisine *</label>
-                            <input
-                                name="origin"
-                                required
-                                placeholder="e.g. Lebanese, Mexican, Italian"
-                                className="admin-input"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="text-sm text-gray-400 block mb-1">Description *</label>
-                        <textarea
-                            name="description"
-                            required
-                            placeholder="Short description of the product..."
-                            rows={3}
-                            className="admin-input resize-none"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-sm text-gray-400 block mb-1">Image URL</label>
-                        <input
-                            name="image"
-                            placeholder="https://..."
-                            className="admin-input"
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        className="bg-white text-black px-5 py-2 rounded font-semibold text-sm hover:bg-gray-100 transition"
-                    >
-                        Add Product
-                    </button>
-                </form>
-            </div>
+            {(saved || deleted) && (
+                <p role="status" className="mb-6 flex items-center gap-2 rounded-lg border border-green-900 bg-green-950/40 px-4 py-3 text-sm text-green-300">
+                    <CheckIcon className="w-4 h-4" />
+                    {saved ? `Saved "${saved}". Your website is updated.` : `Deleted "${deleted}".`}
+                </p>
+            )}
 
-            {/* Products list */}
-            <div className="space-y-4">
-                {products.length === 0 ? (
-                    <p className="text-gray-500 text-sm">No products yet. Add one above.</p>
-                ) : (
-                    products.map((p) => (
-                        <details
-                            key={p.id}
-                            className="bg-zinc-900 border border-zinc-800 rounded-xl group"
+            {/* Search and origin filter */}
+            <form action="/admin/products" method="GET" className="flex gap-2 mb-3">
+                {originFilter !== "all" && <input type="hidden" name="origin" value={originFilter} />}
+                <label className="flex-1 flex items-center gap-2 bg-black border border-zinc-700 rounded-lg px-3 focus-within:border-zinc-500">
+                    <SearchIcon className="w-4 h-4 text-zinc-500" />
+                    <input name="q" defaultValue={searchQuery} placeholder="Search products" aria-label="Search products" className="flex-1 bg-transparent py-2 text-sm focus:outline-none" />
+                </label>
+                <button type="submit" className="px-4 py-2 rounded-lg text-sm font-semibold bg-white text-black hover:bg-zinc-200">Search</button>
+            </form>
+            {allOrigins.length > 1 && (
+                <div className="flex flex-wrap gap-2 mb-6">
+                    {["all", ...allOrigins.map((o) => o.origin)].map((o) => (
+                        <Link
+                            key={o}
+                            href={originHref(o)}
+                            className={`px-3 py-1 rounded-full text-sm border transition ${originFilter === o ? "bg-white text-black border-white font-semibold" : "border-zinc-700 text-zinc-300 hover:border-zinc-500"}`}
                         >
-                            <summary className="flex items-center gap-4 p-4 cursor-pointer list-none">
-                                {p.image ? (
-                                    <img
-                                        src={p.image}
-                                        alt={p.name}
-                                        className="w-16 h-16 object-cover rounded-lg border border-zinc-700 flex-shrink-0"
-                                    />
-                                ) : (
-                                    <div className="w-16 h-16 bg-zinc-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                                        <span className="text-zinc-600 text-xs">No img</span>
-                                    </div>
-                                )}
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-semibold">{p.name}</p>
-                                    <span className="inline-block text-xs text-amber-300/70 border border-amber-300/20 rounded-full px-2 py-0.5 mt-1">
-                                        {p.origin}
-                                    </span>
-                                    <p className="text-sm text-gray-400 mt-1 truncate">{p.description}</p>
-                                </div>
-                                <span className="text-zinc-500 text-sm ml-2">Edit ▾</span>
-                            </summary>
+                            {o === "all" ? "All" : o}
+                        </Link>
+                    ))}
+                </div>
+            )}
 
-                            {/* Edit form */}
-                            <div className="px-4 pb-4 border-t border-zinc-800 pt-4">
-                                <form action={updateProduct} className="space-y-3">
-                                    <input type="hidden" name="id" value={p.id} />
-                                    <div className="grid md:grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="text-xs text-gray-400 block mb-1">Product Name</label>
-                                            <input
-                                                name="name"
-                                                defaultValue={p.name}
-                                                required
-                                                className="admin-input"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-xs text-gray-400 block mb-1">Origin</label>
-                                            <input
-                                                name="origin"
-                                                defaultValue={p.origin}
-                                                required
-                                                className="admin-input"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-gray-400 block mb-1">Description</label>
-                                        <textarea
-                                            name="description"
-                                            defaultValue={p.description}
-                                            required
-                                            rows={2}
-                                            className="admin-input resize-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="text-xs text-gray-400 block mb-1">Image URL</label>
-                                        <input
-                                            name="image"
-                                            defaultValue={p.image || ""}
-                                            className="admin-input"
-                                        />
-                                    </div>
-                                    <div className="flex gap-3">
-                                        <button
-                                            type="submit"
-                                            className="bg-white text-black px-4 py-1.5 rounded text-sm font-semibold hover:bg-gray-100 transition"
-                                        >
-                                            Save Changes
-                                        </button>
-                                        {/* Uses the same form, but runs deleteProduct instead of saving */}
-                                        <ConfirmButton
-                                            message={`Delete "${p.name}"? This can't be undone.`}
-                                            formAction={deleteProduct}
-                                            formNoValidate
-                                            className="text-red-400 hover:text-red-300 text-sm px-4 py-1.5 border border-red-900 rounded transition"
-                                        >
-                                            Delete
-                                        </ConfirmButton>
-                                    </div>
-                                </form>
+            {products.length === 0 ? (
+                <EmptyState
+                    title={total === 0 ? "No products yet" : "No products match"}
+                    text={total === 0 ? "Add your first product and it will appear on your website." : "Try a different search or filter."}
+                    action={total === 0 && <AdminLink href="/admin/products/new" variant="primary"><PlusIcon className="w-4 h-4" /> Add product</AdminLink>}
+                />
+            ) : (
+                <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {products.map((p) => (
+                        <Link
+                            key={p.id}
+                            href={`/admin/products/${p.id}`}
+                            className="group bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-600 transition flex flex-col"
+                        >
+                            <SafeImage src={p.image} alt={p.name} className="w-full aspect-[4/3]" />
+                            <div className="p-4 flex-1 flex flex-col">
+                                <div className="flex items-start justify-between gap-2">
+                                    <p className="font-semibold group-hover:underline">{p.name}</p>
+                                    <span className="text-xs text-amber-200/80 border border-amber-200/20 rounded-full px-2 py-0.5 shrink-0">{p.origin}</span>
+                                </div>
+                                <p className="text-sm text-zinc-400 mt-1.5 line-clamp-2 flex-1">{p.description}</p>
+                                <p className="text-xs text-zinc-500 mt-3">Added {formatDate(p.createdAt)} · Click to edit</p>
                             </div>
-                        </details>
-                    ))
-                )}
-            </div>
+                        </Link>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

@@ -1,7 +1,12 @@
-import { prisma } from "../../../lib/prisma";
+import { requireAdmin } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { SubmissionsClient } from "./SubmissionsClient";
 import { STATUSES, statusInfo } from "@/lib/status";
+import { AdminLink, PageHeader } from "@/components/admin/ui";
+import { DownloadIcon, SearchIcon } from "@/components/admin/icons";
+
+export const metadata = { title: "Submissions" };
 
 type PageProps = {
     searchParams: Promise<{
@@ -11,95 +16,112 @@ type PageProps = {
 };
 
 export default async function SubmissionsPage({ searchParams }: PageProps) {
+    await requireAdmin();
     const { status, q } = await searchParams;
 
-    const statusFilter = status || "all";
-    const searchQuery = q || "";
+    const statusFilter = status && STATUSES.includes(status as never) ? status : "all";
+    const searchQuery = q?.trim() || "";
 
-    const submissions = await prisma.submission.findMany({
-        where: {
-            AND: [
-                statusFilter !== "all" ? { status: statusFilter } : {},
-                searchQuery
-                    ? {
-                        OR: [
-                            { name: { contains: searchQuery, mode: "insensitive" } },
-                            { email: { contains: searchQuery, mode: "insensitive" } },
-                            { companyName: { contains: searchQuery, mode: "insensitive" } },
-                            { productName: { contains: searchQuery, mode: "insensitive" } },
-                            { category: { contains: searchQuery, mode: "insensitive" } },
-                        ],
-                    }
-                    : {},
+    const search = searchQuery
+        ? {
+            OR: [
+                { name: { contains: searchQuery, mode: "insensitive" as const } },
+                { email: { contains: searchQuery, mode: "insensitive" as const } },
+                { companyName: { contains: searchQuery, mode: "insensitive" as const } },
+                { productName: { contains: searchQuery, mode: "insensitive" as const } },
+                { category: { contains: searchQuery, mode: "insensitive" as const } },
+                { trackingId: { contains: searchQuery, mode: "insensitive" as const } },
             ],
-        },
-        orderBy: { createdAt: "desc" },
-        select: {
-            id: true,
-            productName: true,
-            companyName: true,
-            email: true,
-            status: true,
-            createdAt: true,
-            category: true,
-            trackingId: true,
-        },
-    });
+        }
+        : {};
+
+    const [submissions, grouped] = await Promise.all([
+        prisma.submission.findMany({
+            where: { AND: [statusFilter !== "all" ? { status: statusFilter } : {}, search] },
+            // Pending: waiting longest first. Everything else: newest first.
+            orderBy: { createdAt: statusFilter === "pending" ? "asc" : "desc" },
+            select: {
+                id: true,
+                productName: true,
+                companyName: true,
+                name: true,
+                email: true,
+                status: true,
+                createdAt: true,
+                category: true,
+                trackingId: true,
+            },
+        }),
+        prisma.submission.groupBy({ by: ["status"], _count: { _all: true } }),
+    ]);
+
+    const countFor = (s: string) => grouped.find((g) => g.status === s)?._count._all ?? 0;
+    const total = grouped.reduce((sum, g) => sum + g._count._all, 0);
+    const tabs = [
+        { key: "all", label: "All", count: total },
+        ...STATUSES.map((s) => ({ key: s, label: statusInfo[s].label, count: countFor(s) })),
+    ];
+
+    const tabHref = (key: string) => {
+        const params = new URLSearchParams();
+        if (key !== "all") params.set("status", key);
+        if (searchQuery) params.set("q", searchQuery);
+        const query = params.toString();
+        return `/admin/submissions${query ? `?${query}` : ""}`;
+    };
 
     return (
-        <div className="p-8">
-            <div className="flex justify-between mb-6">
-                <h1 className="text-3xl font-bold">Submissions</h1>
-                <a
-                    href="/admin/export"
-                    className="bg-white text-black px-4 py-2 rounded font-semibold"
-                >
-                    Export Excel
-                </a>
+        <div>
+            <PageHeader
+                title="Submissions"
+                description="Products vendors have sent through your website. Click any row to open it."
+                actions={
+                    <AdminLink href="/admin/export" newTab variant="secondary">
+                        <DownloadIcon className="w-4 h-4" /> Export to Excel
+                    </AdminLink>
+                }
+            />
+
+            {/* Status tabs */}
+            <div className="flex flex-wrap gap-2 mb-4">
+                {tabs.map((t) => (
+                    <Link
+                        key={t.key}
+                        href={tabHref(t.key)}
+                        className={`px-3.5 py-1.5 rounded-full text-sm border transition ${statusFilter === t.key
+                            ? "bg-white text-black border-white font-semibold"
+                            : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
+                            }`}
+                    >
+                        {t.label} <span className={statusFilter === t.key ? "text-zinc-600" : "text-zinc-500"}>{t.count}</span>
+                    </Link>
+                ))}
             </div>
 
-            <form
-                action="/admin/submissions"
-                method="GET"
-                className="flex flex-col md:flex-row gap-3 mb-6"
-            >
-                <input
-                    name="q"
-                    defaultValue={searchQuery}
-                    placeholder="Search name, email, company, product..."
-                    className="admin-input md:flex-1"
-                />
-                <select
-                    name="status"
-                    defaultValue={statusFilter}
-                    className="admin-input md:w-auto"
-                >
-                    <option value="all">All Statuses</option>
-                    {STATUSES.map((status) => (
-                        <option key={status} value={status}>{statusInfo[status].label}</option>
-                    ))}
-                </select>
-                <button
-                    type="submit"
-                    className="bg-amber-200 text-black px-5 py-2 rounded font-semibold"
-                >
-                    Filter
-                </button>
-                <Link
-                    href="/admin/submissions"
-                    className="border border-zinc-700 px-5 py-2 rounded text-center"
-                >
-                    Reset
-                </Link>
+            {/* Search */}
+            <form action="/admin/submissions" method="GET" className="flex gap-2 mb-6">
+                {statusFilter !== "all" && <input type="hidden" name="status" value={statusFilter} />}
+                <label className="flex-1 flex items-center gap-2 bg-black border border-zinc-700 rounded-lg px-3 focus-within:border-zinc-500">
+                    <SearchIcon className="w-4 h-4 text-zinc-500" />
+                    <input
+                        name="q"
+                        defaultValue={searchQuery}
+                        placeholder="Search by product, company, name, email or tracking ID"
+                        aria-label="Search submissions"
+                        className="flex-1 bg-transparent py-2 text-sm focus:outline-none"
+                    />
+                </label>
+                <button type="submit" className="px-4 py-2 rounded-lg text-sm font-semibold bg-white text-black hover:bg-zinc-200">Search</button>
+                {searchQuery && (
+                    <Link href={statusFilter === "all" ? "/admin/submissions" : `/admin/submissions?status=${statusFilter}`} className="px-4 py-2 rounded-lg text-sm border border-zinc-700 text-zinc-300 hover:border-zinc-500">
+                        Clear
+                    </Link>
+                )}
             </form>
 
             <SubmissionsClient
-                submissions={submissions.map((s) => ({
-                    ...s,
-                    createdAt: s.createdAt.toISOString(),
-                }))}
-                statusFilter={statusFilter}
-                searchQuery={searchQuery}
+                submissions={submissions.map((s) => ({ ...s, createdAt: s.createdAt.toISOString() }))}
+                emptyText={searchQuery ? `Nothing matches "${searchQuery}".` : statusFilter === "pending" ? "Nothing is waiting for a reply." : "No submissions here yet."}
             />
         </div>
     );
