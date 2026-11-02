@@ -5,6 +5,8 @@ import { SafeImage } from "@/components/admin/SafeImage";
 import { AdminLink, EmptyState, PageHeader } from "@/components/admin/ui";
 import { CheckIcon, PlusIcon, SearchIcon } from "@/components/admin/icons";
 import { formatDate } from "@/lib/dates";
+import { ConfirmButton } from "@/components/ConfirmButton";
+import { deleteProduct } from "./actions";
 
 export const metadata = { title: "Products" };
 
@@ -100,21 +102,32 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
             ) : (
                 <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
                     {products.map((p) => (
-                        <Link
-                            key={p.id}
-                            href={`/admin/products/${p.id}`}
-                            className="group bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-600 transition flex flex-col"
-                        >
-                            <SafeImage src={p.image} alt={p.name} className="w-full aspect-[4/3]" />
-                            <div className="p-4 flex-1 flex flex-col">
-                                <div className="flex items-start justify-between gap-2">
-                                    <p className="font-semibold group-hover:underline">{p.name}</p>
-                                    <span className="text-xs text-amber-200/80 border border-amber-200/20 rounded-full px-2 py-0.5 shrink-0">{p.origin}</span>
+                        <div key={p.id} className="group bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-600 transition flex flex-col">
+                            <Link href={`/admin/products/${p.id}`} className="flex-1 flex flex-col">
+                                <SafeImage src={p.image} alt={p.name} className="w-full aspect-[4/3]" emptyClassName="w-full h-32" />
+                                <div className="p-4 flex-1 flex flex-col">
+                                    <div className="flex items-start justify-between gap-2">
+                                        <p className="font-semibold group-hover:underline">{p.name}</p>
+                                        <span className="text-xs text-amber-200/80 border border-amber-200/20 rounded-full px-2 py-0.5 shrink-0">{p.origin}</span>
+                                    </div>
+                                    <p className="text-sm text-zinc-400 mt-1.5 line-clamp-2 flex-1">{p.description}</p>
+                                    <p className="text-xs text-zinc-500 mt-3">Added {formatDate(p.createdAt)}</p>
                                 </div>
-                                <p className="text-sm text-zinc-400 mt-1.5 line-clamp-2 flex-1">{p.description}</p>
-                                <p className="text-xs text-zinc-500 mt-3">Added {formatDate(p.createdAt)} · Click to edit</p>
+                            </Link>
+                            <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-t border-zinc-800">
+                                <Link href={`/admin/products/${p.id}`} className="text-sm text-zinc-300 hover:text-white">Edit</Link>
+                                <form action={deleteProduct}>
+                                    <input type="hidden" name="id" value={p.id} />
+                                    <ConfirmButton
+                                        type="submit"
+                                        message={`Delete "${p.name}"? It will be removed from your website. This can't be undone.`}
+                                        className="text-sm text-zinc-500 hover:text-red-400"
+                                    >
+                                        Delete
+                                    </ConfirmButton>
+                                </form>
                             </div>
-                        </Link>
+                        </div>
                     ))}
                 </div>
             )}

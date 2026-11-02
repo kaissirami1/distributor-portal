@@ -58,15 +58,18 @@ model Product {
   origin      String
   createdAt   DateTime @default(now())
 }
+// A sale of either a vendor's product (submission) or one of our own inventory items
 model Sale {
-  id           Int        @id @default(autoincrement())
-  quantity     Int
-  revenue      Float
-  note         String?
-  createdAt    DateTime   @default(now())
+  id              Int            @id @default(autoincrement())
+  quantity        Int
+  revenue         Float
+  note            String?
+  createdAt       DateTime       @default(now())
 
-  submissionId Int
-  submission   Submission @relation(fields: [submissionId], references: [id])
+  submissionId    Int?
+  submission      Submission?    @relation(fields: [submissionId], references: [id])
+  inventoryItemId Int?
+  inventoryItem   InventoryItem? @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
 }
 
 // Paperwork a seller sends us: food license, FDA registration, insurance, etc.
@@ -93,4 +96,78 @@ model LoginAttempt {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+// Products we buy and hold ourselves. Units and reasons are listed in lib/inventory.ts.
+model InventoryItem {
+  id         Int      @id @default(autoincrement())
+  name       String
+  sku        String?
+  supplier   String?
+  unit       String   @default("case")
+  quantity   Int      @default(0)
+  cost       Float    @default(0)
+  price      Float    @default(0)
+  lowStockAt Int?
+  location   String?
+  notes      String?
+  image      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  movements  InventoryMovement[]
+  sales      Sale[]
+}
+
+// Every change to an item's stock: received, sold, removed, corrected
+model InventoryMovement {
+  id        Int           @id @default(autoincrement())
+  change    Int
+  reason    String
+  note      String?
+  author    String?
+  createdAt DateTime      @default(now())
+
+  itemId    Int
+  item      InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+// Stores we visit and sell to. Stages, store types and roles are listed in lib/stores.ts.
+model Store {
+  id          Int          @id @default(autoincrement())
+  name        String
+  type        String?
+  address     String?
+  city        String?
+  phone       String?
+  email       String?
+  website     String?
+  contactName String?
+  contactRole String?
+  stage       String       @default("new")
+  nextStep    String?
+  followUpOn  DateTime?
+  notes       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  visits      StoreVisit[]
+}
+
+// Every visit, call or message with a store
+model StoreVisit {
+  id            Int      @id @default(autoincrement())
+  date          DateTime @default(now())
+  kind          String   @default("visit")
+  spokeWith     String?
+  spokeWithRole String?
+  decisionMaker Boolean  @default(false)
+  samplesGiven  String?
+  outcome       String?
+  notes         String?
+  author        String?
+  createdAt     DateTime @default(now())
+
+  storeId       Int
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
 }

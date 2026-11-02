@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/StatusBadge";
 import { EmptyState } from "@/components/admin/ui";
 import { daysSince, formatDate, timeAgo, waitingTone } from "@/lib/dates";
+import { deleteSubmissions } from "@/lib/submissionActions";
 
 type Submission = {
     id: number;
@@ -66,6 +67,24 @@ export function SubmissionsClient({ submissions, emptyText }: { submissions: Sub
         setBulkLoading(false);
     }
 
+    async function bulkDelete() {
+        if (selected.size === 0) return;
+        if (!confirm(`Delete ${selected.size} submission(s) permanently? Their notes, documents and sales are deleted too. The vendors aren't notified. This can't be undone.`)) {
+            return;
+        }
+        setBulkLoading(true);
+        setMessage("");
+        try {
+            const count = await deleteSubmissions(Array.from(selected));
+            setMessage(`Deleted ${count} submission(s).`);
+            setSelected(new Set());
+            router.refresh();
+        } catch {
+            setMessage("Couldn't delete the selected submissions. Please try again.");
+        }
+        setBulkLoading(false);
+    }
+
     if (submissions.length === 0) {
         return <EmptyState title={emptyText} />;
     }
@@ -84,6 +103,9 @@ export function SubmissionsClient({ submissions, emptyText }: { submissions: Sub
                     </button>
                     <button onClick={() => bulkUpdate("rejected")} disabled={bulkLoading} className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-red-900/40 text-red-300 border border-red-800 hover:bg-red-900/70 disabled:opacity-50">
                         Reject
+                    </button>
+                    <button onClick={bulkDelete} disabled={bulkLoading} className="px-3 py-1.5 rounded-lg text-sm font-semibold border border-red-900 text-red-400 hover:bg-red-950 disabled:opacity-50">
+                        Delete
                     </button>
                     <button onClick={() => setSelected(new Set())} className="px-3 py-1.5 rounded-lg text-sm text-zinc-400 hover:text-white">
                         Cancel
@@ -148,7 +170,7 @@ export function SubmissionsClient({ submissions, emptyText }: { submissions: Sub
                     })}
                 </ul>
             </div>
-            <p className="text-xs text-zinc-500 mt-3">Tick the boxes to update several at once.</p>
+            <p className="text-xs text-zinc-500 mt-3">Tick the boxes to update or delete several at once.</p>
         </div>
     );
 }

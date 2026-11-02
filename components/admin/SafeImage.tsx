@@ -4,8 +4,17 @@ import { useState } from "react";
 import { ImageIcon } from "./icons";
 
 // Shows an image, or a clear placeholder if there isn't one or it fails to load
-export function SafeImage({ src, alt, className = "", emptyClassName }: { src?: string | null; alt: string; className?: string; emptyClassName?: string }) {
+// compact: for small thumbnails, the placeholder is just an icon
+export function SafeImage({ src, alt, className = "", emptyClassName, compact }: { src?: string | null; alt: string; className?: string; emptyClassName?: string; compact?: boolean }) {
     const [broken, setBroken] = useState(false);
+
+    if ((!src || broken) && compact) {
+        return (
+            <div className={`flex items-center justify-center bg-zinc-900 text-zinc-600 ${emptyClassName ?? className}`} title={src ? "Image couldn't be loaded" : "No image"}>
+                <ImageIcon className="w-5 h-5" />
+            </div>
+        );
+    }
 
     if (!src || broken) {
         return (

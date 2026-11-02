@@ -12,12 +12,13 @@ type PageProps = {
     searchParams: Promise<{
         status?: string;
         q?: string;
+        deleted?: string;
     }>;
 };
 
 export default async function SubmissionsPage({ searchParams }: PageProps) {
     await requireAdmin();
-    const { status, q } = await searchParams;
+    const { status, q, deleted } = await searchParams;
 
     const statusFilter = status && STATUSES.includes(status as never) ? status : "all";
     const searchQuery = q?.trim() || "";
@@ -81,6 +82,12 @@ export default async function SubmissionsPage({ searchParams }: PageProps) {
                     </AdminLink>
                 }
             />
+
+            {deleted && (
+                <p role="status" className="mb-4 rounded-lg border border-green-900 bg-green-950/40 px-4 py-3 text-sm text-green-300">
+                    Deleted &quot;{deleted}&quot;.
+                </p>
+            )}
 
             {/* Status tabs */}
             <div className="flex flex-wrap gap-2 mb-4">

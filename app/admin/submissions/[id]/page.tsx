@@ -14,6 +14,7 @@ import { AdminButton, AdminLink, Detail, EmptyState, PageHeader, Panel } from "@
 import { FileIcon, MailIcon, PhoneIcon } from "@/components/admin/icons";
 import { DocumentChecklist } from "@/components/DocumentChecklist";
 import { adminDeleteDocument, adminSaveDocument, requestDocuments } from "@/lib/documentActions";
+import { deleteSubmissionFromPage } from "@/lib/submissionActions";
 
 type PageProps = {
     params: Promise<{ id: string }>;
@@ -275,6 +276,19 @@ export default async function SubmissionDetailsPage({ params }: PageProps) {
                             </ul>
                         )}
                     </Panel>
+
+                    <form action={deleteSubmissionFromPage} className="border-t border-zinc-800 pt-6 flex flex-wrap items-center justify-between gap-3">
+                        <input type="hidden" name="submissionId" value={s.id} />
+                        <input type="hidden" name="productName" value={s.productName} />
+                        <p className="text-sm text-zinc-500">Deleting removes this submission with its notes, documents and sales. The vendor isn't notified.</p>
+                        <ConfirmButton
+                            type="submit"
+                            message={`Delete "${s.productName}" permanently? Its notes, documents and sales are deleted too. This can't be undone.`}
+                            className="px-4 py-2 rounded-lg text-sm font-semibold border border-red-900 text-red-400 hover:bg-red-950"
+                        >
+                            Delete submission
+                        </ConfirmButton>
+                    </form>
                 </div>
 
                 {/* ── Right: decision and notes ── */}

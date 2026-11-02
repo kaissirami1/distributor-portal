@@ -35,6 +35,19 @@ export default async function AdminDashboardPage() {
         prisma.submission.findMany({ where: { category: { not: null } }, select: { category: true } }),
     ]);
 
+    // Stores to follow up with today (or overdue), and inventory running low
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+    const [followUps, inventory] = await Promise.all([
+        prisma.store.findMany({
+            where: { followUpOn: { lte: endOfToday }, stage: { not: "not_interested" } },
+            orderBy: { followUpOn: "asc" },
+            select: { id: true, name: true, nextStep: true, followUpOn: true },
+        }),
+        prisma.inventoryItem.findMany({ where: { lowStockAt: { not: null } }, select: { id: true, name: true, quantity: true, unit: true, lowStockAt: true } }),
+    ]);
+    const lowStock = inventory.filter((i) => i.quantity <= (i.lowStockAt ?? -1));
+
     const counts = STATUSES.map((status, i) => ({ status, ...statusInfo[status], value: statusCounts[i] }));
     const count = (s: string) => counts.find((c) => c.status === s)?.value ?? 0;
 
@@ -107,6 +120,49 @@ export default async function AdminDashboardPage() {
                     </ul>
                 )}
             </Panel>
+
+            {/* ── Store follow-ups and low stock ── */}
+            {(followUps.length > 0 || lowStock.length > 0) && (
+                <div className="grid lg:grid-cols-2 gap-6">
+                    {followUps.length > 0 && (
+                        <Panel
+                            title={<span className="flex items-center gap-2">Store follow-ups <span className="px-2 py-0.5 rounded-full bg-amber-300 text-black text-xs font-bold">{followUps.length}</span></span>}
+                            action={<Link href="/admin/stores" className="text-sm text-zinc-400 hover:text-white">All stores →</Link>}
+                        >
+                            <ul className="divide-y divide-zinc-800 -my-2">
+                                {followUps.map((st) => (
+                                    <li key={st.id}>
+                                        <Link href={`/admin/stores/${st.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 -mx-2 px-2 rounded-lg hover:bg-zinc-800/60 transition">
+                                            <div className="flex-1 min-w-40">
+                                                <p className="font-medium">{st.name}</p>
+                                                <p className="text-sm text-zinc-500">{st.nextStep || "Follow up"}</p>
+                                            </div>
+                                            <p className="text-sm text-amber-300">{formatDate(st.followUpOn!)}</p>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </Panel>
+                    )}
+                    {lowStock.length > 0 && (
+                        <Panel
+                            title={<span className="flex items-center gap-2">Low stock <span className="px-2 py-0.5 rounded-full bg-amber-300 text-black text-xs font-bold">{lowStock.length}</span></span>}
+                            action={<Link href="/admin/inventory?low=1" className="text-sm text-zinc-400 hover:text-white">Inventory →</Link>}
+                        >
+                            <ul className="divide-y divide-zinc-800 -my-2">
+                                {lowStock.map((i) => (
+                                    <li key={i.id}>
+                                        <Link href={`/admin/inventory/${i.id}`} className="flex items-center justify-between gap-4 py-3 -mx-2 px-2 rounded-lg hover:bg-zinc-800/60 transition">
+                                            <p className="font-medium">{i.name}</p>
+                                            <p className="text-sm text-amber-300">{i.quantity} {i.unit}{i.quantity === 1 ? "" : "s"} left</p>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </Panel>
+                    )}
+                </div>
+            )}
 
             {/* ── Numbers ── */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
