@@ -8,6 +8,9 @@ import { AdminButton, AdminLink, Detail, PageHeader, Panel } from "@/components/
 import { CheckIcon, GlobeIcon, LinkIcon, MailIcon, PhoneIcon } from "@/components/admin/icons";
 import { StageBadge } from "../StageBadge";
 import { StoreForm } from "../StoreForm";
+import { PaymentBadge } from "@/components/admin/PaymentBadge";
+import { paymentStatus } from "@/lib/payments";
+import Link from "next/link";
 import { clearFollowUp, deleteStore, deleteVisit, logVisit, setStage } from "../actions";
 
 export const metadata = { title: "Store" };
@@ -28,7 +31,13 @@ export default async function StorePage({ params, searchParams }: PageProps) {
 
     const store = await prisma.store.findUnique({
         where: { id: storeId },
-        include: { visits: { orderBy: [{ date: "desc" }, { id: "desc" }] } },
+        include: {
+            visits: { orderBy: [{ date: "desc" }, { id: "desc" }] },
+            sales: {
+                orderBy: { createdAt: "desc" },
+                include: { submission: { select: { productName: true } }, inventoryItem: { select: { name: true } } },
+            },
+        },
     });
     if (!store) notFound();
 
@@ -48,6 +57,11 @@ export default async function StorePage({ params, searchParams }: PageProps) {
     const overdue = store.followUpOn && store.followUpOn < new Date(new Date().setHours(0, 0, 0, 0));
     const samples = store.visits.filter((v) => v.samplesGiven);
     const input = "admin-input mt-1";
+    const money = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+    const totalBought = store.sales.reduce((n, s) => n + s.revenue, 0);
+    const unpaid = store.sales.filter((s) => !s.paidAt);
+    const unpaidTotal = unpaid.reduce((n, s) => n + s.revenue, 0);
+    const paymentOverdue = unpaid.some((s) => paymentStatus(s) === "overdue");
 
     return (
         <div className="space-y-6">
@@ -222,6 +236,27 @@ export default async function StorePage({ params, searchParams }: PageProps) {
                                 )}
                             </Detail>
                         </dl>
+                    </Panel>
+
+                    <Panel title="Sales & payments" action={<Link href="/admin/payments" className="text-sm text-zinc-400 hover:text-white">Payments →</Link>}>
+                        {store.sales.length === 0 ? (
+                            <p className="text-sm text-zinc-500">No sales to this store yet. Pick this store under &quot;Sold to&quot; when you log a sale.</p>
+                        ) : (
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div><p className="text-xs text-zinc-500">Bought in total</p><p className="font-semibold tabular-nums">{money(totalBought)}</p></div>
+                                    <div><p className="text-xs text-zinc-500">Still owes</p><p className={`font-semibold tabular-nums ${paymentOverdue ? "text-red-400" : unpaidTotal ? "text-amber-300" : "text-green-400"}`}>{money(unpaidTotal)}</p></div>
+                                </div>
+                                <ul className="divide-y divide-zinc-800 text-sm">
+                                    {store.sales.slice(0, 8).map((s) => (
+                                        <li key={s.id} className="flex items-center justify-between gap-2 py-2">
+                                            <span className="min-w-0 truncate">{s.submission?.productName ?? s.inventoryItem?.name} <span className="text-zinc-500">· {formatDate(s.createdAt)}</span></span>
+                                            <span className="flex items-center gap-2 shrink-0"><span className="tabular-nums">{money(s.revenue)}</span><PaymentBadge item={s} /></span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
                     </Panel>
 
                     <Panel title="Samples left here">

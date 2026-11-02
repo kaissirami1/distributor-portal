@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { site } from "@/lib/site";
 import {
-    BoxIcon, CalculatorIcon, CloseIcon, DashboardIcon, DownloadIcon, GlobeIcon, InboxIcon, LogoutIcon, MenuIcon, SalesIcon, StackIcon, StoreIcon,
+    BoxIcon, CalculatorIcon, CloseIcon, DashboardIcon, DownloadIcon, GlobeIcon, InboxIcon, LogoutIcon, MenuIcon, SalesIcon, StackIcon, StoreIcon, WalletIcon,
 } from "./icons";
 
 // The admin sidebar (a slide-out menu on phones). Add a page to the menu here.
@@ -17,6 +17,7 @@ const links = [
     { href: "/admin/stores", label: "Stores", Icon: StoreIcon },
     { href: "/admin/calculator", label: "Price Calculator", Icon: CalculatorIcon },
     { href: "/admin/sales", label: "Sales", Icon: SalesIcon },
+    { href: "/admin/payments", label: "Payments", Icon: WalletIcon },
 ];
 
 export function AdminNav({ waiting, admin }: { waiting: number; admin: string }) {

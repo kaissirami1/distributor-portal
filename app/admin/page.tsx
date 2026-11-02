@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { AdminLink, EmptyState, PageHeader, Panel, Stat } from "@/components/admin/ui";
 import { CheckIcon } from "@/components/admin/icons";
 import { daysAgo, daysSince, formatDate, timeAgo, waitingTone } from "@/lib/dates";
+import { paymentStatus } from "@/lib/payments";
 
 export const metadata = { title: "Dashboard" };
 
@@ -47,6 +48,16 @@ export default async function AdminDashboardPage() {
         prisma.inventoryItem.findMany({ where: { lowStockAt: { not: null } }, select: { id: true, name: true, quantity: true, unit: true, lowStockAt: true } }),
     ]);
     const lowStock = inventory.filter((i) => i.quantity <= (i.lowStockAt ?? -1));
+
+    // Money: overdue payments from stores, and bills due within a week
+    const weekAhead = new Date();
+    weekAhead.setDate(weekAhead.getDate() + 7);
+    const [unpaidSales, unpaidBills] = await Promise.all([
+        prisma.sale.findMany({ where: { paidAt: null }, select: { revenue: true, dueDate: true, paidAt: true } }),
+        prisma.bill.findMany({ where: { paidAt: null, dueDate: { lte: weekAhead } }, select: { amount: true } }),
+    ]);
+    const overdueSales = unpaidSales.filter((s) => paymentStatus(s) === "overdue");
+    const money = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" });
 
     const counts = STATUSES.map((status, i) => ({ status, ...statusInfo[status], value: statusCounts[i] }));
     const count = (s: string) => counts.find((c) => c.status === s)?.value ?? 0;
@@ -120,6 +131,20 @@ export default async function AdminDashboardPage() {
                     </ul>
                 )}
             </Panel>
+
+            {/* ── Money that needs attention ── */}
+            {(overdueSales.length > 0 || unpaidBills.length > 0) && (
+                <Link href="/admin/payments" className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-red-900/60 bg-red-950/20 px-5 py-4 hover:border-red-800 transition">
+                    <p className="font-semibold">Payments</p>
+                    {overdueSales.length > 0 && (
+                        <p className="text-sm text-red-300">{overdueSales.length} overdue from stores · {money(overdueSales.reduce((n, s) => n + s.revenue, 0))}</p>
+                    )}
+                    {unpaidBills.length > 0 && (
+                        <p className="text-sm text-amber-300">{unpaidBills.length} bill{unpaidBills.length === 1 ? "" : "s"} due within a week · {money(unpaidBills.reduce((n, b) => n + b.amount, 0))}</p>
+                    )}
+                    <span className="ml-auto text-sm text-zinc-400">Open Payments →</span>
+                </Link>
+            )}
 
             {/* ── Store follow-ups and low stock ── */}
             {(followUps.length > 0 || lowStock.length > 0) && (

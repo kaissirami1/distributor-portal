@@ -5,11 +5,13 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { REMOVE_REASONS } from "@/lib/inventory";
+import { PAYMENT_METHODS } from "@/lib/payments";
 
 function refresh(id?: number) {
     revalidatePath("/admin/inventory");
     if (id) revalidatePath(`/admin/inventory/${id}`);
     revalidatePath("/admin/sales");
+    revalidatePath("/admin/payments");
 }
 
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
@@ -76,10 +78,18 @@ export async function changeStock(formData: FormData) {
     } else if (kind === "sold") {
         const unitPrice = number(formData, "unitPrice");
         const revenue = Number.isFinite(unitPrice) && unitPrice >= 0 ? unitPrice * qty : item.price * qty;
+        const dueDate = text(formData, "dueDate");
+        const paid = formData.get("paid") === "on";
+        const billing = {
+            storeId: Number(formData.get("storeId")) || null,
+            dueDate: /^\d{4}-\d{2}-\d{2}$/.test(dueDate) ? new Date(`${dueDate}T12:00:00`) : null,
+            paidAt: paid ? new Date() : null,
+            paymentMethod: paid && PAYMENT_METHODS.includes(text(formData, "paymentMethod")) ? text(formData, "paymentMethod") : null,
+        };
         await prisma.$transaction([
             prisma.inventoryItem.update({ where: { id }, data: { quantity: { decrement: qty } } }),
             prisma.inventoryMovement.create({ data: { itemId: id, change: -qty, reason: "sold", note, author: admin } }),
-            prisma.sale.create({ data: { inventoryItemId: id, quantity: qty, revenue, note } }),
+            prisma.sale.create({ data: { inventoryItemId: id, quantity: qty, revenue, note, ...billing } }),
         ]);
     } else {
         const reason = REMOVE_REASONS.some((r) => r.key === text(formData, "reason")) ? text(formData, "reason") : "adjustment";

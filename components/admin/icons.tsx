@@ -16,6 +16,7 @@ export const BoxIcon = (p: IconProps) => <Svg {...p}><path d="M21 8 12 3 3 8v8l9
 export const CalculatorIcon = (p: IconProps) => <Svg {...p}><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M8 7h8" /><path d="M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01" /></Svg>;
 export const StoreIcon = (p: IconProps) => <Svg {...p}><path d="M4 10v10h16V10" /><path d="M3 10 5 4h14l2 6" /><path d="M3 10a3 3 0 0 0 6 0a3 3 0 0 0 6 0a3 3 0 0 0 6 0" /><path d="M10 20v-5h4v5" /></Svg>;
 export const StackIcon = (p: IconProps) => <Svg {...p}><rect x="4" y="4" width="16" height="6" rx="1" /><rect x="4" y="14" width="16" height="6" rx="1" /><path d="M8 7h.01M8 17h.01" /></Svg>;
+export const WalletIcon = (p: IconProps) => <Svg {...p}><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 10h18" /><path d="M16 15h2" /></Svg>;
 export const SalesIcon = (p: IconProps) => <Svg {...p}><path d="M4 19V5" /><path d="M4 19h16" /><path d="m7 15 4-4 3 3 5-6" /></Svg>;
 export const DownloadIcon = (p: IconProps) => <Svg {...p}><path d="M12 4v11" /><path d="m7 10 5 5 5-5" /><path d="M4 20h16" /></Svg>;
 export const GlobeIcon = (p: IconProps) => <Svg {...p}><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18" /></Svg>;

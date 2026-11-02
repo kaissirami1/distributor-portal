@@ -70,6 +70,14 @@ model Sale {
   submission      Submission?    @relation(fields: [submissionId], references: [id])
   inventoryItemId Int?
   inventoryItem   InventoryItem? @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+
+  // Who bought it and whether they've paid (see Admin → Payments)
+  storeId         Int?
+  store           Store?         @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  invoiceNumber   String?
+  dueDate         DateTime?
+  paidAt          DateTime?
+  paymentMethod   String?
 }
 
 // Paperwork a seller sends us: food license, FDA registration, insurance, etc.
@@ -152,6 +160,7 @@ model Store {
   updatedAt   DateTime     @updatedAt
 
   visits      StoreVisit[]
+  sales       Sale[]
 }
 
 // Every visit, call or message with a store
@@ -170,4 +179,19 @@ model StoreVisit {
 
   storeId       Int
   store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
+// Money we owe: sellers, the warehouse, freight, anything else (see Admin → Payments)
+model Bill {
+  id            Int       @id @default(autoincrement())
+  payee         String
+  description   String?
+  amount        Float
+  dueDate       DateTime?
+  paidAt        DateTime?
+  paymentMethod String?
+  reference     String?
+  notes         String?
+  author        String?
+  createdAt     DateTime  @default(now())
 }

@@ -6,6 +6,8 @@ import { formatDate } from "@/lib/dates";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { AdminButton, EmptyState, PageHeader, Panel, Stat } from "@/components/admin/ui";
 import { CheckIcon } from "@/components/admin/icons";
+import { SaleBillingFields } from "@/components/admin/SaleBillingFields";
+import { PaymentBadge } from "@/components/admin/PaymentBadge";
 
 export const metadata = { title: "Sales" };
 
@@ -19,12 +21,13 @@ export default async function SalesPage({ searchParams }: PageProps) {
     await requireAdmin();
     const { logged, error } = await searchParams;
 
-    const [sales, submissions, inventory] = await Promise.all([
+    const [sales, submissions, inventory, stores] = await Promise.all([
         prisma.sale.findMany({
             orderBy: { createdAt: "desc" },
             include: {
                 submission: { select: { id: true, productName: true, companyName: true, name: true } },
                 inventoryItem: { select: { id: true, name: true, supplier: true } },
+                store: { select: { id: true, name: true } },
             },
         }),
         prisma.submission.findMany({
@@ -32,6 +35,7 @@ export default async function SalesPage({ searchParams }: PageProps) {
             orderBy: { productName: "asc" },
         }),
         prisma.inventoryItem.findMany({ select: { id: true, name: true, quantity: true, unit: true, price: true }, orderBy: { name: "asc" } }),
+        prisma.store.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
     ]);
     submissions.sort((a, b) => Number(b.status === "approved") - Number(a.status === "approved"));
 
@@ -143,8 +147,9 @@ export default async function SalesPage({ searchParams }: PageProps) {
                         <label className="text-xs text-zinc-500">Date
                             <input name="date" type="date" defaultValue={today} className="admin-input mt-1" />
                         </label>
+                        <SaleBillingFields stores={stores} />
                         <label className="text-xs text-zinc-500 sm:col-span-2 lg:col-span-3">Note
-                            <input name="note" placeholder="e.g. Store name, or 'samples'" className="admin-input mt-1" />
+                            <input name="note" placeholder="Optional" className="admin-input mt-1" />
                         </label>
                         <AdminButton type="submit">Log sale</AdminButton>
                     </form>
@@ -203,10 +208,14 @@ export default async function SalesPage({ searchParams }: PageProps) {
                                         <span className="text-sm text-zinc-500 w-28">{formatDate(s.createdAt)}</span>
                                         <div className="flex-1 min-w-40">
                                             {src.href ? <Link href={src.href} className="font-medium hover:underline">{src.name}</Link> : <span className="font-medium">{src.name}</span>}
-                                            <p className="text-xs text-zinc-500">{[src.from, s.note].filter(Boolean).join(" · ")}</p>
+                                            <p className="text-xs text-zinc-500">
+                                                {s.store && <><Link href={`/admin/stores/${s.store.id}`} className="text-zinc-300 hover:underline">{s.store.name}</Link>{" · "}</>}
+                                                {[src.from, s.invoiceNumber && `Invoice ${s.invoiceNumber}`, s.note].filter(Boolean).join(" · ")}
+                                            </p>
                                         </div>
                                         <span className="text-sm tabular-nums w-20 text-right">{s.quantity} units</span>
                                         <span className="text-sm tabular-nums w-24 text-right text-green-400">{money(s.revenue)}</span>
+                                        <Link href="/admin/payments" title="See Payments"><PaymentBadge item={s} /></Link>
                                         <form action={deleteSale}>
                                             <input type="hidden" name="saleId" value={s.id} />
                                             <ConfirmButton

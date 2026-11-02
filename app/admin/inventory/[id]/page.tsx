@@ -8,6 +8,7 @@ import { SafeImage } from "@/components/admin/SafeImage";
 import { AdminButton, AdminLink, PageHeader, Panel, Stat } from "@/components/admin/ui";
 import { CheckIcon } from "@/components/admin/icons";
 import { ItemForm } from "../ItemForm";
+import { SaleBillingFields } from "@/components/admin/SaleBillingFields";
 import { changeStock, deleteItem } from "../actions";
 
 export const metadata = { title: "Inventory item" };
@@ -35,6 +36,7 @@ export default async function InventoryItemPage({ params, searchParams }: PagePr
     const itemId = Number(id);
     if (!Number.isInteger(itemId)) notFound();
 
+    const stores = await prisma.store.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
     const item = await prisma.inventoryItem.findUnique({
         where: { id: itemId },
         include: {
@@ -112,8 +114,9 @@ export default async function InventoryItemPage({ params, searchParams }: PagePr
                                 <label className="block text-xs text-zinc-500">Price per {unit} ($)
                                     <input name="unitPrice" type="number" min="0" step="0.01" defaultValue={item.price} className={input} />
                                 </label>
-                                <label className="block text-xs text-zinc-500">Sold to / note
-                                    <input name="note" placeholder="e.g. Store name" className={input} />
+                                <SaleBillingFields stores={stores} showInvoice={false} />
+                                <label className="block text-xs text-zinc-500">Note
+                                    <input name="note" placeholder="Optional" className={input} />
                                 </label>
                                 <AdminButton type="submit" className="w-full" disabled={item.quantity === 0}>− Record sale</AdminButton>
                             </form>

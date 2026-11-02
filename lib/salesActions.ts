@@ -4,9 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "./prisma";
 import { requireAdmin } from "./auth";
+import { PAYMENT_METHODS } from "./payments";
 
 function refresh(sale: { submissionId: number | null; inventoryItemId: number | null }) {
     revalidatePath("/admin/sales");
+    revalidatePath("/admin/payments");
     if (sale.submissionId) revalidatePath(`/admin/submissions/${sale.submissionId}`);
     if (sale.inventoryItemId) {
         revalidatePath(`/admin/inventory/${sale.inventoryItemId}`);
@@ -30,7 +32,19 @@ export async function logSale(formData: FormData) {
     }
 
     // Noon on the chosen day, so the date shows the same in every time zone
-    const createdAt = /^\d{4}-\d{2}-\d{2}$/.test(date) ? new Date(`${date}T12:00:00`) : new Date();
+    const toDay = (v: string) => (/^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(`${v}T12:00:00`) : null);
+    const createdAt = toDay(date) ?? new Date();
+
+    // Who bought it and whether they've paid
+    const method = String(formData.get("paymentMethod") ?? "");
+    const paid = formData.get("paid") === "on";
+    const billing = {
+        storeId: Number(formData.get("storeId")) || null,
+        invoiceNumber: String(formData.get("invoiceNumber") ?? "").trim() || null,
+        dueDate: toDay(String(formData.get("dueDate") ?? "")),
+        paidAt: paid ? createdAt : null,
+        paymentMethod: paid && PAYMENT_METHODS.includes(method) ? method : null,
+    };
 
     if (source === "inv") {
         const item = await prisma.inventoryItem.findUnique({ where: { id }, select: { quantity: true } });
@@ -39,11 +53,11 @@ export async function logSale(formData: FormData) {
         await prisma.$transaction([
             prisma.inventoryItem.update({ where: { id }, data: { quantity: { decrement: quantity } } }),
             prisma.inventoryMovement.create({ data: { itemId: id, change: -quantity, reason: "sold", note, author: admin } }),
-            prisma.sale.create({ data: { inventoryItemId: id, quantity, revenue, note, createdAt } }),
+            prisma.sale.create({ data: { inventoryItemId: id, quantity, revenue, note, createdAt, ...billing } }),
         ]);
         refresh({ submissionId: null, inventoryItemId: id });
     } else {
-        await prisma.sale.create({ data: { submissionId: id, quantity, revenue, note, createdAt } });
+        await prisma.sale.create({ data: { submissionId: id, quantity, revenue, note, createdAt, ...billing } });
         refresh({ submissionId: id, inventoryItemId: null });
     }
     redirect("/admin/sales?logged=1");
