@@ -48,6 +48,89 @@
   }
 }
 
+/* ── Admin bright mode ──────────────────────────────────────────────────────
+   The admin's pages are written in dark colors. Bright mode swaps what those
+   colors mean on the admin's wrapper (app/admin/layout.tsx), so every page
+   follows without changing its class names: bg-zinc-900 panels turn white,
+   text-white turns near-black, and bg-white buttons turn dark.
+   ───────────────────────────────────────────────────────────────────────── */
+html:has([data-admin-theme="light"]) {
+  color-scheme: light;
+}
+
+html:has([data-admin-theme="light"]) body {
+  background: oklch(96.7% 0.001 286.375);
+}
+
+[data-admin-theme="light"] {
+  --color-white: oklch(14.1% 0.005 285.823);
+  --color-black: #fff;
+
+  --color-zinc-950: oklch(96.7% 0.001 286.375); /* page */
+  --color-zinc-900: #fff;                       /* panels */
+  --color-zinc-800: oklch(92% 0.004 286.32);    /* lines, selected menu item */
+  --color-zinc-700: oklch(87.1% 0.006 286.286); /* text box borders */
+  --color-zinc-600: oklch(55.2% 0.016 285.938);
+  --color-zinc-500: oklch(44.2% 0.017 285.786); /* small gray text */
+  --color-zinc-400: oklch(37% 0.013 285.805);
+  --color-zinc-300: oklch(27.4% 0.006 286.033);
+  --color-zinc-200: oklch(21% 0.006 285.885);
+  --color-zinc-100: oklch(14.1% 0.005 285.823);
+
+  --color-gray-600: oklch(55.1% 0.027 264.364);
+  --color-gray-500: oklch(44.6% 0.03 256.802);
+  --color-gray-400: oklch(37.3% 0.034 259.733);
+  --color-gray-300: oklch(27.8% 0.033 256.848);
+
+  --color-red-950: oklch(93.6% 0.032 17.717);
+  --color-red-900: oklch(88.5% 0.062 18.334);
+  --color-red-800: oklch(80.8% 0.114 19.571);
+  --color-red-700: oklch(70.4% 0.191 22.216);
+  --color-red-400: oklch(50.5% 0.213 27.518);
+  --color-red-300: oklch(44.4% 0.177 26.899);
+  --color-red-200: oklch(39.6% 0.141 25.723);
+
+  --color-green-950: oklch(96.2% 0.044 156.743);
+  --color-green-900: oklch(92.5% 0.084 155.995);
+  --color-green-800: oklch(87.1% 0.15 154.449);
+  --color-green-700: oklch(79.2% 0.209 151.711);
+  --color-green-400: oklch(52.7% 0.154 150.069);
+  --color-green-300: oklch(44.8% 0.119 151.328);
+  --color-green-200: oklch(39.3% 0.095 152.535);
+
+  --color-amber-950: oklch(96.2% 0.059 95.617);
+  --color-amber-900: oklch(92.4% 0.12 95.746);
+  --color-amber-800: oklch(87.9% 0.169 91.605);
+  --color-amber-700: oklch(82.8% 0.189 84.429);
+  --color-amber-400: oklch(55.5% 0.163 48.998);
+  --color-amber-300: oklch(55.5% 0.163 48.998);
+  --color-amber-200: oklch(47.3% 0.137 46.201);
+
+  --color-yellow-950: oklch(97.3% 0.071 103.193);
+  --color-yellow-900: oklch(94.5% 0.129 101.54);
+  --color-yellow-800: oklch(90.5% 0.182 98.111);
+  --color-yellow-700: oklch(85.2% 0.199 91.936);
+  --color-yellow-400: oklch(55.4% 0.135 66.442);
+  --color-yellow-300: oklch(47.6% 0.114 61.907);
+  --color-yellow-200: oklch(42.1% 0.095 57.708);
+
+  --color-blue-950: oklch(93.2% 0.032 255.585);
+  --color-blue-900: oklch(88.2% 0.059 254.128);
+  --color-blue-800: oklch(80.9% 0.105 251.813);
+  --color-blue-700: oklch(70.7% 0.165 254.624);
+  --color-blue-400: oklch(48.8% 0.243 264.376);
+  --color-blue-300: oklch(42.4% 0.199 265.638);
+  --color-blue-200: oklch(37.9% 0.146 265.522);
+
+  --color-purple-950: oklch(94.6% 0.033 307.174);
+  --color-purple-900: oklch(90.2% 0.063 306.703);
+  --color-purple-800: oklch(82.7% 0.119 306.383);
+  --color-purple-700: oklch(71.4% 0.203 305.504);
+  --color-purple-400: oklch(49.6% 0.265 301.924);
+  --color-purple-300: oklch(43.8% 0.218 303.724);
+  --color-purple-200: oklch(38.1% 0.176 304.987);
+}
+
 /* ── Animations ─────────────────────────────────────────────────────────── */
 
 @keyframes fadeUp {

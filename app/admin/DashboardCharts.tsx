@@ -47,9 +47,9 @@ export function DashboardCharts({ dailyData, statusData, topCategories }: Props)
                                 allowDecimals={false}
                             />
                             <Tooltip
-                                contentStyle={{ background: "#18181b", border: "1px solid #3f3f46", borderRadius: 8 }}
-                                labelStyle={{ color: "#a1a1aa", fontSize: 12 }}
-                                itemStyle={{ color: "#f5f5f5" }}
+                                contentStyle={{ background: "var(--color-zinc-900)", border: "1px solid var(--color-zinc-700)", borderRadius: 8 }}
+                                labelStyle={{ color: "var(--color-zinc-400)", fontSize: 12 }}
+                                itemStyle={{ color: "var(--color-zinc-100)" }}
                                 formatter={(value) => [value, "Submissions"]}
                                 labelFormatter={(label) => label || ""}
                             />
@@ -87,12 +87,12 @@ export function DashboardCharts({ dailyData, statusData, topCategories }: Props)
                             </Pie>
                             <Legend
                                 formatter={(value) => (
-                                    <span style={{ color: "#a1a1aa", fontSize: 12 }}>{value}</span>
+                                    <span style={{ color: "var(--color-zinc-400)", fontSize: 12 }}>{value}</span>
                                 )}
                             />
                             <Tooltip
-                                contentStyle={{ background: "#18181b", border: "1px solid #3f3f46", borderRadius: 8 }}
-                                itemStyle={{ color: "#f5f5f5" }}
+                                contentStyle={{ background: "var(--color-zinc-900)", border: "1px solid var(--color-zinc-700)", borderRadius: 8 }}
+                                itemStyle={{ color: "var(--color-zinc-100)" }}
                             />
                         </PieChart>
                     </ResponsiveContainer>
@@ -119,14 +119,14 @@ export function DashboardCharts({ dailyData, statusData, topCategories }: Props)
                             <YAxis
                                 type="category"
                                 dataKey="name"
-                                tick={{ fill: "#a1a1aa", fontSize: 12 }}
+                                tick={{ fill: "var(--color-zinc-400)", fontSize: 12 }}
                                 axisLine={false}
                                 tickLine={false}
                                 width={120}
                             />
                             <Tooltip
-                                contentStyle={{ background: "#18181b", border: "1px solid #3f3f46", borderRadius: 8 }}
-                                itemStyle={{ color: "#f5f5f5" }}
+                                contentStyle={{ background: "var(--color-zinc-900)", border: "1px solid var(--color-zinc-700)", borderRadius: 8 }}
+                                itemStyle={{ color: "var(--color-zinc-100)" }}
                                 formatter={(value) => [value, "Submissions"]}
                             />
                             <Bar dataKey="count" fill="#60a5fa" radius={[0, 4, 4, 0]} />

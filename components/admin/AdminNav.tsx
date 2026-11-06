@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { site } from "@/lib/site";
 import {
-    BoxIcon, CalculatorIcon, CloseIcon, DashboardIcon, DownloadIcon, GlobeIcon, InboxIcon, LogoutIcon, MenuIcon, SalesIcon, StackIcon, StoreIcon, WalletIcon,
+    BoxIcon, CalculatorIcon, CloseIcon, DashboardIcon, DownloadIcon, GlobeIcon, InboxIcon, LogoutIcon, MenuIcon, MoonIcon, SalesIcon, StackIcon, StoreIcon, SunIcon, WalletIcon,
 } from "./icons";
 
 // The admin sidebar (a slide-out menu on phones). Add a page to the menu here.
@@ -20,8 +20,21 @@ const links = [
     { href: "/admin/payments", label: "Payments", Icon: WalletIcon },
 ];
 
-export function AdminNav({ waiting, admin }: { waiting: number; admin: string }) {
+const themes = [
+    { value: "dark", label: "Dark", Icon: MoonIcon },
+    { value: "light", label: "Bright", Icon: SunIcon },
+] as const;
+type Theme = (typeof themes)[number]["value"];
+
+// Switch right away, and remember it for next time (app/admin/layout.tsx reads the cookie)
+function applyTheme(theme: Theme) {
+    document.cookie = `admin-theme=${theme}; path=/admin; max-age=31536000; samesite=lax`;
+    document.querySelector("[data-admin-theme]")?.setAttribute("data-admin-theme", theme);
+}
+
+export function AdminNav({ waiting, admin, theme: savedTheme }: { waiting: number; admin: string; theme: Theme }) {
     const [open, setOpen] = useState(false);
+    const [theme, setTheme] = useState(savedTheme);
     const pathname = usePathname();
     const isActive = (href: string) => (href === "/admin" ? pathname === "/admin" : pathname.startsWith(href));
 
@@ -66,6 +79,19 @@ export function AdminNav({ waiting, admin }: { waiting: number; admin: string })
 
             <div className="px-3 py-4 border-t border-zinc-800 space-y-1">
                 <p className="px-3 pb-2 text-xs text-zinc-500">Logged in as <span className="text-zinc-300">{admin}</span></p>
+                <div role="group" aria-label="Color mode" className="grid grid-cols-2 gap-1 p-1 mb-2 rounded-lg bg-zinc-800/60">
+                    {themes.map(({ value, label, Icon }) => (
+                        <button
+                            key={value}
+                            type="button"
+                            onClick={() => { setTheme(value); applyTheme(value); }}
+                            aria-pressed={theme === value}
+                            className={`flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-medium transition ${theme === value ? "bg-white text-black" : "text-zinc-400 hover:text-white"}`}
+                        >
+                            <Icon className="w-4 h-4" /> {label}
+                        </button>
+                    ))}
+                </div>
                 <a
                     href="/"
                     target="_blank"
