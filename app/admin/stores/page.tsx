@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { STORE_STAGES } from "@/lib/stores";
 import { formatDate, timeAgo } from "@/lib/dates";
 import { AdminLink, EmptyState, PageHeader, Panel } from "@/components/admin/ui";
-import { CheckIcon, PlusIcon, SearchIcon } from "@/components/admin/icons";
+import { CheckIcon, DownloadIcon, PlusIcon, SearchIcon } from "@/components/admin/icons";
 import { StageBadge } from "./StageBadge";
 
 export const metadata = { title: "Stores" };
@@ -60,7 +60,12 @@ export default async function StoresPage({ searchParams }: PageProps) {
             <PageHeader
                 title="Stores"
                 description="Every store you visit or call: who's in charge, samples you left, and what to do next."
-                actions={<AdminLink href="/admin/stores/new" variant="primary"><PlusIcon className="w-4 h-4" /> Add store</AdminLink>}
+                actions={
+                    <>
+                        {stores.length > 0 && <AdminLink href="/admin/stores/export" download><DownloadIcon className="w-4 h-4" /> Download CSV</AdminLink>}
+                        <AdminLink href="/admin/stores/new" variant="primary"><PlusIcon className="w-4 h-4" /> Add store</AdminLink>
+                    </>
+                }
             />
 
             {deleted && (

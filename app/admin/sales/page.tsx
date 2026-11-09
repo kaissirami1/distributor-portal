@@ -26,7 +26,7 @@ export default async function SalesPage({ searchParams }: PageProps) {
             orderBy: { createdAt: "desc" },
             include: {
                 submission: { select: { id: true, productName: true, companyName: true, name: true } },
-                inventoryItem: { select: { id: true, name: true, supplier: true } },
+                inventoryItem: { select: { id: true, name: true, supplier: true, seller: { select: { name: true } } } },
                 store: { select: { id: true, name: true } },
             },
         }),
@@ -42,7 +42,7 @@ export default async function SalesPage({ searchParams }: PageProps) {
     // Where a sale came from: a vendor's product or one of our inventory items
     const source = (s: (typeof sales)[number]) =>
         s.inventoryItem
-            ? { key: `inv-${s.inventoryItem.id}`, name: s.inventoryItem.name, from: s.inventoryItem.supplier ? `Inventory · ${s.inventoryItem.supplier}` : "Inventory", href: `/admin/inventory/${s.inventoryItem.id}` }
+            ? { key: `inv-${s.inventoryItem.id}`, name: s.inventoryItem.name, from: (s.inventoryItem.seller?.name ?? s.inventoryItem.supplier) ? `Inventory · ${s.inventoryItem.seller?.name ?? s.inventoryItem.supplier}` : "Inventory", href: `/admin/inventory/${s.inventoryItem.id}` }
             : s.submission
                 ? { key: `sub-${s.submission.id}`, name: s.submission.productName, from: s.submission.companyName || s.submission.name, href: `/admin/submissions/${s.submission.id}` }
                 : { key: `sale-${s.id}`, name: "Deleted product", from: "", href: "" };

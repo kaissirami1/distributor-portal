@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { marginPercent, money, unitCount } from "@/lib/inventory";
+import { marginPercent, money, palletCount, unitCount } from "@/lib/inventory";
 import { SafeImage } from "@/components/admin/SafeImage";
 import { AdminLink, EmptyState, PageHeader, Stat } from "@/components/admin/ui";
-import { CheckIcon, PlusIcon, SearchIcon } from "@/components/admin/icons";
+import { CheckIcon, DownloadIcon, PlusIcon, SearchIcon } from "@/components/admin/icons";
+import { InventoryTabs } from "./InventoryTabs";
 
 export const metadata = { title: "Inventory" };
 
@@ -15,13 +17,27 @@ export default async function InventoryPage({ searchParams }: PageProps) {
     const { q, low, deleted } = await searchParams;
     const searchQuery = q?.trim() || "";
 
-    const all = await prisma.inventoryItem.findMany({ orderBy: { name: "asc" } });
+    const [all, sellerCount] = await Promise.all([
+        prisma.inventoryItem.findMany({
+            orderBy: { name: "asc" },
+            include: {
+                seller: { select: { name: true } },
+                movements: { where: { batch: { not: null } }, select: { batch: true } },
+            },
+        }),
+        prisma.seller.count(),
+    ]);
     const isLow = (i: (typeof all)[number]) => i.lowStockAt !== null && i.quantity <= i.lowStockAt;
+
+    // Scanned or typed an exact case barcode or SKU: go straight to that item
+    const exact = searchQuery && all.filter((i) => [i.caseBarcode, i.sku].some((code) => code && code.toLowerCase() === searchQuery.toLowerCase().replace(/\s+/g, "")));
+    if (exact && exact.length === 1) redirect(`/admin/inventory/${exact[0].id}`);
 
     const items = all.filter((i) => {
         if (low && !isLow(i)) return false;
         if (!searchQuery) return true;
-        const hay = `${i.name} ${i.sku ?? ""} ${i.supplier ?? ""} ${i.location ?? ""}`.toLowerCase();
+        const batches = i.movements.map((m) => m.batch).join(" ");
+        const hay = `${i.name} ${i.sku ?? ""} ${i.caseBarcode ?? ""} ${i.seller?.name ?? i.supplier ?? ""} ${i.location ?? ""} ${batches}`.toLowerCase();
         return hay.includes(searchQuery.toLowerCase());
     });
 
@@ -34,8 +50,14 @@ export default async function InventoryPage({ searchParams }: PageProps) {
             <PageHeader
                 title="Inventory"
                 description="Products you buy and hold yourself. Click an item to receive stock, record a sale, or edit it."
-                actions={<AdminLink href="/admin/inventory/new" variant="primary"><PlusIcon className="w-4 h-4" /> Add item</AdminLink>}
+                actions={
+                    <>
+                        {all.length > 0 && <AdminLink href="/admin/inventory/export" download><DownloadIcon className="w-4 h-4" /> Download CSV</AdminLink>}
+                        <AdminLink href="/admin/inventory/new" variant="primary"><PlusIcon className="w-4 h-4" /> Add item</AdminLink>
+                    </>
+                }
             />
+            <InventoryTabs active="items" counts={{ items: all.length, sellers: sellerCount }} />
 
             {deleted && (
                 <p role="status" className="flex items-center gap-2 rounded-lg border border-green-900 bg-green-950/40 px-4 py-3 text-sm text-green-300">
@@ -53,7 +75,7 @@ export default async function InventoryPage({ searchParams }: PageProps) {
             <form action="/admin/inventory" method="GET" className="flex flex-wrap gap-2">
                 <label className="flex-1 min-w-56 flex items-center gap-2 bg-black border border-zinc-700 rounded-lg px-3 focus-within:border-zinc-500">
                     <SearchIcon className="w-4 h-4 text-zinc-500" />
-                    <input name="q" defaultValue={searchQuery} placeholder="Search by name, SKU, supplier or location" aria-label="Search inventory" className="flex-1 bg-transparent py-2 text-sm focus:outline-none" />
+                    <input name="q" defaultValue={searchQuery} placeholder="Search or scan: name, barcode, SKU, seller, batch #" aria-label="Search inventory" className="flex-1 bg-transparent py-2 text-sm focus:outline-none" />
                 </label>
                 {low && <input type="hidden" name="low" value="1" />}
                 <button type="submit" className="px-4 py-2 rounded-lg text-sm font-semibold bg-white text-black hover:bg-zinc-200">Search</button>
@@ -72,7 +94,7 @@ export default async function InventoryPage({ searchParams }: PageProps) {
                 />
             ) : (
                 <div className="border border-zinc-800 rounded-xl overflow-hidden">
-                    <div className="hidden md:grid grid-cols-[3.5rem_minmax(0,2fr)_8rem_7rem_7rem_6rem] gap-4 items-center px-4 py-2.5 bg-zinc-900 text-xs uppercase tracking-wide text-zinc-500">
+                    <div className="hidden md:grid grid-cols-[3.5rem_minmax(0,2fr)_9rem_5.5rem_5.5rem_4.5rem] gap-4 items-center px-4 py-2.5 bg-zinc-900 text-xs uppercase tracking-wide text-zinc-500">
                         <span />
                         <span>Item</span>
                         <span className="text-right">In stock</span>
@@ -85,17 +107,18 @@ export default async function InventoryPage({ searchParams }: PageProps) {
                             <li key={i.id}>
                                 <Link
                                     href={`/admin/inventory/${i.id}`}
-                                    className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] md:grid-cols-[3.5rem_minmax(0,2fr)_8rem_7rem_7rem_6rem] gap-x-4 gap-y-1 items-center px-4 py-3 hover:bg-zinc-900 transition"
+                                    className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] md:grid-cols-[3.5rem_minmax(0,2fr)_9rem_5.5rem_5.5rem_4.5rem] gap-x-4 gap-y-1 items-center px-4 py-3 hover:bg-zinc-900 transition"
                                 >
                                     <SafeImage src={i.image} alt="" compact className="w-14 h-14 rounded-lg" />
                                     <div className="min-w-0">
                                         <p className="font-medium truncate">{i.name}</p>
                                         <p className="text-xs text-zinc-500 truncate">
-                                            {[i.sku, i.supplier, i.location].filter(Boolean).join(" · ") || "Click to add details"}
+                                            {[i.seller?.name ?? i.supplier, i.caseBarcode && `Case ${i.caseBarcode}`, i.sku, i.location].filter(Boolean).join(" · ") || "Click to add details"}
                                         </p>
                                     </div>
                                     <div className="text-right">
                                         <p className={`tabular-nums font-medium ${isLow(i) ? "text-amber-300" : ""}`}>{unitCount(i.quantity, i.unit)}</p>
+                                        {palletCount(i.quantity, i.unit, i.casesPerPallet) && <p className="text-xs text-zinc-500">{palletCount(i.quantity, i.unit, i.casesPerPallet)}</p>}
                                         {isLow(i) && <p className="text-xs text-amber-300">Low stock</p>}
                                     </div>
                                     <p className="hidden md:block text-right tabular-nums text-zinc-400">{money(i.cost)}</p>

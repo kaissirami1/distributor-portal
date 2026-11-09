@@ -5,15 +5,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { site } from "@/lib/site";
 import {
-    BoxIcon, CalculatorIcon, CloseIcon, DashboardIcon, DownloadIcon, GlobeIcon, InboxIcon, LogoutIcon, MenuIcon, MoonIcon, SalesIcon, StackIcon, StoreIcon, SunIcon, WalletIcon,
+    BoxIcon, CalculatorIcon, CloseIcon, DashboardIcon, DownloadIcon, GlobeIcon, InboxIcon, LogoutIcon, MenuIcon, MoonIcon, SalesIcon, StackIcon, StoreIcon, SunIcon, UsersIcon, WalletIcon,
 } from "./icons";
 
 // The admin sidebar (a slide-out menu on phones). Add a page to the menu here.
-const links = [
+// "sub" pages are shown indented under the one above them.
+const links: { href: string; label: string; Icon: typeof DashboardIcon; badge?: "waiting"; sub?: boolean }[] = [
     { href: "/admin", label: "Dashboard", Icon: DashboardIcon },
-    { href: "/admin/submissions", label: "Submissions", Icon: InboxIcon, badge: "waiting" as const },
+    { href: "/admin/submissions", label: "Submissions", Icon: InboxIcon, badge: "waiting" },
     { href: "/admin/products", label: "Products", Icon: BoxIcon },
     { href: "/admin/inventory", label: "Inventory", Icon: StackIcon },
+    { href: "/admin/sellers", label: "Sellers", Icon: UsersIcon, sub: true },
     { href: "/admin/stores", label: "Stores", Icon: StoreIcon },
     { href: "/admin/calculator", label: "Price Calculator", Icon: CalculatorIcon },
     { href: "/admin/sales", label: "Sales", Icon: SalesIcon },
@@ -49,17 +51,17 @@ export function AdminNav({ waiting, admin, theme: savedTheme }: { waiting: numbe
             </div>
 
             <div className="flex-1 px-3 py-4 lg:pt-8 space-y-1">
-                {links.map(({ href, label, Icon, badge }) => (
+                {links.map(({ href, label, Icon, badge, sub }) => (
                     <Link
                         key={href}
                         href={href}
                         onClick={() => setOpen(false)}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition ${isActive(href)
+                        className={`flex items-center gap-3 rounded-lg text-sm transition ${sub ? "ml-6 px-3 py-2" : "px-3 py-2.5"} ${isActive(href)
                             ? "bg-zinc-800 text-white font-medium"
                             : "text-zinc-400 hover:text-white hover:bg-zinc-800/60"
                             }`}
                     >
-                        <Icon className="w-5 h-5 shrink-0" />
+                        <Icon className={`${sub ? "w-4 h-4" : "w-5 h-5"} shrink-0`} />
                         <span className="flex-1">{label}</span>
                         {badge === "waiting" && waiting > 0 && (
                             <span className="min-w-6 px-1.5 py-0.5 rounded-full bg-amber-300 text-black text-xs font-bold text-center" title={`${waiting} waiting for a reply`}>

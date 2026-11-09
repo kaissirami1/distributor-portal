@@ -12,10 +12,32 @@ function refresh(id?: number) {
     if (id) revalidatePath(`/admin/inventory/${id}`);
     revalidatePath("/admin/sales");
     revalidatePath("/admin/payments");
+    revalidatePath("/admin/sellers", "layout");
 }
 
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "").trim();
 const number = (formData: FormData, key: string) => Number(text(formData, key));
+
+const wholeNumber = (formData: FormData, key: string) => {
+    const n = Number(text(formData, key));
+    return text(formData, key) !== "" && Number.isInteger(n) && n > 0 ? n : null;
+};
+
+// The seller picked in the item form. "new" adds them to the Sellers list (or reuses one with the same name).
+async function pickSeller(formData: FormData) {
+    const pick = text(formData, "sellerId");
+    if (pick === "new") {
+        const name = text(formData, "newSellerName");
+        if (!name) return null;
+        const existing = await prisma.seller.findFirst({ where: { name: { equals: name, mode: "insensitive" } } });
+        const seller = existing ?? (await prisma.seller.create({ data: { name } }));
+        revalidatePath("/admin/sellers");
+        return seller.id;
+    }
+    const id = Number(pick);
+    if (!Number.isInteger(id) || id <= 0) return null;
+    return (await prisma.seller.findUnique({ where: { id }, select: { id: true } }))?.id ?? null;
+}
 
 // Adds a new item, or saves changes when the form has an id
 export async function saveItem(formData: FormData) {
@@ -25,8 +47,9 @@ export async function saveItem(formData: FormData) {
     const data = {
         name: text(formData, "name"),
         sku: text(formData, "sku") || null,
-        supplier: text(formData, "supplier") || null,
+        caseBarcode: text(formData, "caseBarcode").replace(/\s+/g, "") || null,
         unit: text(formData, "unit") || "case",
+        casesPerPallet: wholeNumber(formData, "casesPerPallet"),
         cost: number(formData, "cost"),
         price: number(formData, "price"),
         lowStockAt: lowStockAt === "" ? null : Math.max(0, Math.floor(Number(lowStockAt))),
@@ -34,23 +57,42 @@ export async function saveItem(formData: FormData) {
         notes: text(formData, "notes") || null,
         image: text(formData, "image") || null,
     };
+    const back = id ? `/admin/inventory/${id}?edit=1&` : "/admin/inventory/new?";
     if (!data.name || !Number.isFinite(data.cost) || data.cost < 0 || !Number.isFinite(data.price) || data.price < 0) {
-        redirect(`/admin/inventory/${id ?? "new"}?error=1`);
+        redirect(`${back}error=1`);
     }
 
+    // Starting stock (new items only), counted in cases or in pallets
+    const byPallet = text(formData, "startBy") === "pallet";
+    const count = Math.max(0, Math.floor(number(formData, "quantity") || 0));
+    if (!id && byPallet && count > 0 && !data.casesPerPallet) redirect(`${back}error=per-pallet`);
+
+    const sellerId = await pickSeller(formData);
+
     if (id) {
-        await prisma.inventoryItem.update({ where: { id }, data });
+        await prisma.inventoryItem.update({ where: { id }, data: { ...data, sellerId } });
         refresh(id);
         redirect(`/admin/inventory/${id}?saved=1`);
     }
 
-    // New item: record its starting stock in the history
-    const start = Math.max(0, Math.floor(number(formData, "quantity") || 0));
+    const start = byPallet ? count * (data.casesPerPallet ?? 0) : count;
     const item = await prisma.inventoryItem.create({
         data: {
             ...data,
+            sellerId,
             quantity: start,
-            movements: start > 0 ? { create: { change: start, reason: "start", author: admin } } : undefined,
+            movements: start > 0
+                ? {
+                    create: {
+                        change: start,
+                        reason: "start",
+                        author: admin,
+                        batch: text(formData, "batch").slice(0, 100) || null,
+                        unitCost: data.cost,
+                        pallets: byPallet ? count : null,
+                    },
+                }
+                : undefined,
         },
     });
     refresh(item.id);
@@ -71,9 +113,38 @@ export async function changeStock(formData: FormData) {
     if (kind !== "received" && qty > item.quantity) redirect(`/admin/inventory/${id}?error=too-many`);
 
     if (kind === "received") {
+        // Pallets need how many cases are in one, and what each case cost us
+        const byPallet = text(formData, "receiveBy") === "pallet";
+        const perPallet = byPallet ? wholeNumber(formData, "casesPerPallet") : null;
+        const costText = text(formData, "unitCost");
+        const unitCost = costText === "" ? null : Number(costText);
+        if (byPallet && !perPallet) redirect(`/admin/inventory/${id}?error=per-pallet`);
+        if (byPallet && unitCost === null) redirect(`/admin/inventory/${id}?error=cost`);
+        if (unitCost !== null && (!Number.isFinite(unitCost) || unitCost < 0)) redirect(`/admin/inventory/${id}?error=cost`);
+
+        const cases = byPallet ? qty * perPallet! : qty;
         await prisma.$transaction([
-            prisma.inventoryItem.update({ where: { id }, data: { quantity: { increment: qty } } }),
-            prisma.inventoryMovement.create({ data: { itemId: id, change: qty, reason: "received", note, author: admin } }),
+            prisma.inventoryItem.update({
+                where: { id },
+                data: {
+                    quantity: { increment: cases },
+                    // Remember the latest cost and pallet size for next time
+                    ...(unitCost !== null ? { cost: unitCost } : {}),
+                    ...(perPallet ? { casesPerPallet: perPallet } : {}),
+                },
+            }),
+            prisma.inventoryMovement.create({
+                data: {
+                    itemId: id,
+                    change: cases,
+                    reason: "received",
+                    note,
+                    author: admin,
+                    batch: text(formData, "batch").slice(0, 100) || null,
+                    unitCost: unitCost ?? item.cost,
+                    pallets: byPallet ? qty : null,
+                },
+            }),
         ]);
     } else if (kind === "sold") {
         const unitPrice = number(formData, "unitPrice");

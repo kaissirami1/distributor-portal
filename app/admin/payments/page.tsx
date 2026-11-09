@@ -16,7 +16,7 @@ const dateValue = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
 export default async function PaymentsPage() {
     await requireAdmin();
 
-    const [sales, bills, stores, sellers, suppliers] = await Promise.all([
+    const [sales, bills, stores, sellers, suppliers, sellerList] = await Promise.all([
         prisma.sale.findMany({
             orderBy: { createdAt: "asc" },
             include: {
@@ -29,10 +29,11 @@ export default async function PaymentsPage() {
         prisma.store.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
         prisma.submission.findMany({ where: { status: "approved" }, select: { companyName: true, name: true } }),
         prisma.inventoryItem.findMany({ where: { supplier: { not: null } }, select: { supplier: true } }),
+        prisma.seller.findMany({ select: { name: true } }),
     ]);
 
     // Suggestions for "Who you owe"
-    const payees = [...new Set([...sellers.map((s) => s.companyName || s.name), ...suppliers.map((s) => s.supplier!)])].sort();
+    const payees = [...new Set([...sellerList.map((s) => s.name), ...sellers.map((s) => s.companyName || s.name), ...suppliers.map((s) => s.supplier!)])].sort();
 
     const weekAhead = new Date();
     weekAhead.setDate(weekAhead.getDate() + 7);

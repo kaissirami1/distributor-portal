@@ -1,14 +1,16 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
-import { MOVEMENT_LABELS, REMOVE_REASONS, marginPercent, money, unitCount } from "@/lib/inventory";
+import { MOVEMENT_LABELS, REMOVE_REASONS, marginPercent, money, palletCount, unitCount } from "@/lib/inventory";
 import { formatDate, formatDateTime } from "@/lib/dates";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { SafeImage } from "@/components/admin/SafeImage";
-import { AdminButton, AdminLink, PageHeader, Panel, Stat } from "@/components/admin/ui";
+import { AdminButton, AdminLink, Detail, PageHeader, Panel, Stat } from "@/components/admin/ui";
 import { CheckIcon } from "@/components/admin/icons";
 import { ItemForm } from "../ItemForm";
 import { SaleBillingFields } from "@/components/admin/SaleBillingFields";
+import { ReceiveStockForm } from "../ReceiveStockForm";
 import { changeStock, deleteItem } from "../actions";
 
 export const metadata = { title: "Inventory item" };
@@ -26,6 +28,8 @@ const UPDATED: Record<string, string> = {
 const ERRORS: Record<string, string> = {
     qty: "Please enter a whole number of 1 or more.",
     "too-many": "You can't take out more than you have in stock.",
+    "per-pallet": "Please enter how many cases are in one pallet.",
+    cost: "Please enter the cost per case (0 or more).",
     "1": "Please enter a name, and a cost and price of 0 or more.",
 };
 
@@ -36,11 +40,15 @@ export default async function InventoryItemPage({ params, searchParams }: PagePr
     const itemId = Number(id);
     if (!Number.isInteger(itemId)) notFound();
 
-    const stores = await prisma.store.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } });
+    const [stores, sellers] = await Promise.all([
+        prisma.store.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+        prisma.seller.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    ]);
     const item = await prisma.inventoryItem.findUnique({
         where: { id: itemId },
         include: {
-            movements: { orderBy: { createdAt: "desc" } },
+            seller: { select: { id: true, name: true } },
+            movements: { orderBy: [{ createdAt: "desc" }, { id: "desc" }] },
             sales: { orderBy: { createdAt: "desc" } },
         },
     });
@@ -50,6 +58,8 @@ export default async function InventoryItemPage({ params, searchParams }: PagePr
     const soldUnits = item.sales.reduce((n, s) => n + s.quantity, 0);
     const soldRevenue = item.sales.reduce((n, s) => n + s.revenue, 0);
     const unit = item.unit;
+    const pallets = palletCount(item.quantity, unit, item.casesPerPallet);
+    const sellerName = item.seller?.name ?? item.supplier;
     const input = "admin-input mt-1";
 
     if (edit) {
@@ -57,7 +67,7 @@ export default async function InventoryItemPage({ params, searchParams }: PagePr
             <div>
                 <PageHeader back={{ href: `/admin/inventory/${item.id}`, label: item.name }} title={`Edit ${item.name}`} />
                 {error && <p role="alert" className="mb-4 text-sm text-red-400">{ERRORS[error] ?? ERRORS["1"]}</p>}
-                <ItemForm item={item} />
+                <ItemForm item={item} sellers={sellers} />
             </div>
         );
     }
@@ -67,7 +77,15 @@ export default async function InventoryItemPage({ params, searchParams }: PagePr
             <PageHeader
                 back={{ href: "/admin/inventory", label: "Inventory" }}
                 title={item.name}
-                description={[item.sku, item.supplier && `from ${item.supplier}`, item.location && `stored at ${item.location}`].filter(Boolean).join(" · ") || undefined}
+                description={
+                    sellerName || item.location
+                        ? <>
+                            {item.seller ? <>from <Link href={`/admin/sellers/${item.seller.id}`} className="underline hover:text-white">{item.seller.name}</Link></> : sellerName && `from ${sellerName}`}
+                            {sellerName && item.location && " · "}
+                            {item.location && `stored at ${item.location}`}
+                        </>
+                        : undefined
+                }
                 actions={<AdminLink href={`/admin/inventory/${item.id}?edit=1`}>Edit details</AdminLink>}
             />
 
@@ -79,7 +97,11 @@ export default async function InventoryItemPage({ params, searchParams }: PagePr
             {error && <p role="alert" className="rounded-lg border border-red-900 bg-red-950/40 px-4 py-3 text-sm text-red-300">{ERRORS[error] ?? "Something went wrong."}</p>}
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Stat label="In stock" value={unitCount(item.quantity, unit)} tone={low ? "text-amber-300" : "text-white"} />
+                <Stat
+                    label="In stock"
+                    value={<>{unitCount(item.quantity, unit)}{pallets && <span className="block text-sm font-normal text-zinc-400 mt-1">{pallets}</span>}</>}
+                    tone={low ? "text-amber-300" : "text-white"}
+                />
                 <Stat label={`Cost / price per ${unit}`} value={<span className="text-2xl">{money(item.cost)} / {money(item.price)}</span>} />
                 <Stat label="Margin" value={item.price > 0 ? `${marginPercent(item.cost, item.price).toFixed(1)}%` : "—"} tone={marginPercent(item.cost, item.price) < 0 ? "text-red-400" : "text-green-400"} />
                 <Stat label="Sold so far" value={<span className="text-2xl">{unitCount(soldUnits, unit)} · {money(soldRevenue)}</span>} />
@@ -89,21 +111,11 @@ export default async function InventoryItemPage({ params, searchParams }: PagePr
             <div className="grid lg:grid-cols-3 gap-6 items-start">
                 {/* ── Stock actions ── */}
                 <div className="lg:col-span-2 space-y-6 min-w-0">
-                    <div className="grid md:grid-cols-3 gap-4">
-                        <Panel title="Receive stock">
-                            <form action={changeStock} className="space-y-3">
-                                <input type="hidden" name="itemId" value={item.id} />
-                                <input type="hidden" name="kind" value="received" />
-                                <label className="block text-xs text-zinc-500">How many {unit}s
-                                    <input name="quantity" type="number" min="1" step="1" required className={input} />
-                                </label>
-                                <label className="block text-xs text-zinc-500">Note
-                                    <input name="note" placeholder="e.g. Delivery from supplier" className={input} />
-                                </label>
-                                <AdminButton type="submit" className="w-full">+ Add to stock</AdminButton>
-                            </form>
-                        </Panel>
+                    <Panel title="Receive stock">
+                        <ReceiveStockForm itemId={item.id} unit={unit} casesPerPallet={item.casesPerPallet} cost={item.cost} />
+                    </Panel>
 
+                    <div className="grid md:grid-cols-2 gap-4">
                         <Panel title="Record a sale">
                             <form action={changeStock} className="space-y-3">
                                 <input type="hidden" name="itemId" value={item.id} />
@@ -155,6 +167,9 @@ export default async function InventoryItemPage({ params, searchParams }: PagePr
                                         </span>
                                         <span className="flex-1 min-w-40">
                                             {MOVEMENT_LABELS[m.reason] ?? m.reason}
+                                            {m.pallets && <span className="text-zinc-400"> · {unitCount(m.pallets, "pallet")} of {m.change / m.pallets}</span>}
+                                            {m.change > 0 && m.unitCost !== null && <span className="text-zinc-400"> · {money(m.unitCost)}/{unit}</span>}
+                                            {m.batch && <span className="text-zinc-400"> · Batch <span className="font-mono text-zinc-200">{m.batch}</span></span>}
                                             {m.note && <span className="text-zinc-500"> · {m.note}</span>}
                                         </span>
                                         <span className="text-xs text-zinc-500">{m.author ? `${m.author} · ` : ""}{formatDateTime(m.createdAt)}</span>
@@ -168,6 +183,15 @@ export default async function InventoryItemPage({ params, searchParams }: PagePr
                 {/* ── Photo, notes, delete ── */}
                 <div className="space-y-6 min-w-0">
                     <SafeImage src={item.image} alt={item.name} className="w-full aspect-[4/3] rounded-xl border border-zinc-800" emptyClassName="w-full h-32 rounded-xl border border-zinc-800" />
+                    <Panel title="Details">
+                        <dl className="grid gap-4">
+                            <Detail label="Case barcode">{item.caseBarcode && <span className="font-mono tracking-wide">{item.caseBarcode}</span>}</Detail>
+                            <Detail label="SKU or item code">{item.sku}</Detail>
+                            <Detail label="Seller">{item.seller ? <Link href={`/admin/sellers/${item.seller.id}`} className="hover:underline">{item.seller.name}</Link> : item.supplier}</Detail>
+                            <Detail label={`${unit.charAt(0).toUpperCase()}${unit.slice(1)}s in one pallet`}>{item.casesPerPallet}</Detail>
+                            <Detail label="Where it's stored">{item.location}</Detail>
+                        </dl>
+                    </Panel>
                     {item.notes && (
                         <Panel title="Notes"><p className="text-sm whitespace-pre-wrap text-zinc-300">{item.notes}</p></Panel>
                     )}

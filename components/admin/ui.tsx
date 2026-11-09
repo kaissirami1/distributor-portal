@@ -110,16 +110,19 @@ export function AdminLink({
     href,
     variant = "secondary",
     newTab,
+    download,
     className = "",
     children,
 }: {
     href: string;
     variant?: Variant;
     newTab?: boolean;
+    download?: boolean; // a file to save, like a CSV
     className?: string;
     children: ReactNode;
 }) {
     const classes = `${base} ${adminButton[variant]} ${className}`;
+    if (download) return <a href={href} download className={classes}>{children}</a>;
     if (/^(mailto:|tel:|https?:)/.test(href) || newTab) {
         return (
             <a href={href} className={classes} {...(newTab ? { target: "_blank", rel: "noreferrer" } : {})}>

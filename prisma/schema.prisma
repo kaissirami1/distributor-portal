@@ -111,8 +111,12 @@ model InventoryItem {
   id         Int      @id @default(autoincrement())
   name       String
   sku        String?
-  supplier   String?
+  supplier   String?  // old free-text supplier; new items pick a Seller instead
   unit       String   @default("case")
+  caseBarcode    String?  // the barcode printed on the case
+  casesPerPallet Int?     // lets stock be shown and received in pallets
+  sellerId       Int?
+  seller         Seller?  @relation(fields: [sellerId], references: [id], onDelete: SetNull)
   quantity   Int      @default(0)
   cost       Float    @default(0)
   price      Float    @default(0)
@@ -135,6 +139,9 @@ model InventoryMovement {
   note      String?
   author    String?
   createdAt DateTime      @default(now())
+  batch     String?       // batch / lot number from the seller (when receiving)
+  unitCost  Float?        // what we paid per case for this delivery
+  pallets   Int?          // received as this many pallets
 
   itemId    Int
   item      InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
@@ -194,4 +201,22 @@ model Bill {
   notes         String?
   author        String?
   createdAt     DateTime  @default(now())
+}
+
+// The people and companies we buy inventory from (Admin → Inventory → Sellers)
+model Seller {
+  id          Int             @id @default(autoincrement())
+  name        String
+  contactName String?
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  state       String?
+  website     String?
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  items       InventoryItem[]
 }
