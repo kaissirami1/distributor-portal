@@ -8,6 +8,9 @@ import { formatDate } from "@/lib/dates";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { AdminLink, Detail, EmptyState, PageHeader, Panel, Stat } from "@/components/admin/ui";
 import { CheckIcon, MailIcon, PhoneIcon, PlusIcon } from "@/components/admin/icons";
+import { PaymentBadge } from "@/components/admin/PaymentBadge";
+import { casesText, orderTotal, poNumber, receivedTotal } from "@/lib/purchaseOrders";
+import { PoStatusBadge } from "../../purchase-orders/PoStatusBadge";
 import { SellerForm } from "../SellerForm";
 import { deleteSeller } from "../actions";
 
@@ -41,7 +44,7 @@ export default async function SellerPage({ params, searchParams }: PageProps) {
         );
     }
 
-    const [deliveryCount, deliveries, submissions] = await Promise.all([
+    const [deliveryCount, deliveries, submissions, orders] = await Promise.all([
         prisma.inventoryMovement.count({ where: { reason: "received", item: { sellerId } } }),
         prisma.inventoryMovement.findMany({
             where: { reason: "received", item: { sellerId } },
@@ -56,6 +59,12 @@ export default async function SellerPage({ params, searchParams }: PageProps) {
                 select: { id: true, productName: true, status: true, createdAt: true },
             })
             : Promise.resolve([]),
+        prisma.purchaseOrder.findMany({
+            where: { sellerId },
+            orderBy: { createdAt: "desc" },
+            take: 10,
+            include: { lines: { select: { cases: true, unitCost: true, receivedCases: true } }, bill: { select: { paidAt: true, dueDate: true } } },
+        }),
     ]);
 
     const stockAtCost = seller.items.reduce((n, i) => n + i.quantity * i.cost, 0);
@@ -71,6 +80,7 @@ export default async function SellerPage({ params, searchParams }: PageProps) {
                     <>
                         {seller.phone && <AdminLink href={`tel:${seller.phone}`} variant="primary"><PhoneIcon className="w-4 h-4" /> Call</AdminLink>}
                         {seller.email && <AdminLink href={`mailto:${seller.email}`}><MailIcon className="w-4 h-4" /> Email</AdminLink>}
+                        <AdminLink href={`/admin/purchase-orders/new?seller=${seller.id}`}><PlusIcon className="w-4 h-4" /> Purchase order</AdminLink>
                         <AdminLink href={`/admin/sellers/${seller.id}?edit=1`}>Edit details</AdminLink>
                     </>
                 }
@@ -104,6 +114,26 @@ export default async function SellerPage({ params, searchParams }: PageProps) {
                                                 {palletCount(i.quantity, i.unit, i.casesPerPallet) && <span className="block text-xs text-zinc-500">{palletCount(i.quantity, i.unit, i.casesPerPallet)}</span>}
                                             </span>
                                             <span className="w-24 text-right text-sm tabular-nums text-zinc-400">{money(i.cost)}/{i.unit}</span>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </Panel>
+
+                    <Panel title="Purchase orders" action={<AdminLink href={`/admin/purchase-orders/new?seller=${seller.id}`} variant="ghost" className="!px-2 !py-1"><PlusIcon className="w-4 h-4" /> New order</AdminLink>}>
+                        {orders.length === 0 ? (
+                            <EmptyState title="No orders yet" text="Make a purchase order when you buy from them." />
+                        ) : (
+                            <ul className="divide-y divide-zinc-800 -my-2">
+                                {orders.map((o) => (
+                                    <li key={o.id}>
+                                        <Link href={`/admin/purchase-orders/${o.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 -mx-2 px-2 rounded-lg hover:bg-zinc-800/60 transition">
+                                            <span className="font-mono text-sm text-zinc-400">{poNumber(o.id)}</span>
+                                            <PoStatusBadge status={o.status} />
+                                            <span className="flex-1 min-w-32 text-sm text-zinc-400">{casesText(o.status, o.lines)} · {formatDate(o.receivedAt ?? o.createdAt)}</span>
+                                            {o.bill && <PaymentBadge item={o.bill} />}
+                                            <span className="text-sm tabular-nums">{money(o.status === "received" ? receivedTotal(o.lines) : orderTotal(o.lines))}</span>
                                         </Link>
                                     </li>
                                 ))}

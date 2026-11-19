@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { site } from "@/lib/site";
 import {
-    BoxIcon, CalculatorIcon, CloseIcon, DashboardIcon, DownloadIcon, GlobeIcon, InboxIcon, LogoutIcon, MenuIcon, MoonIcon, SalesIcon, StackIcon, StoreIcon, SunIcon, UsersIcon, WalletIcon,
+    BoxIcon, CalculatorIcon, CloseIcon, DashboardIcon, DownloadIcon, FileIcon, GlobeIcon, InboxIcon, LogoutIcon, MenuIcon, MoonIcon, SalesIcon, StackIcon, StoreIcon, SunIcon, UsersIcon, WalletIcon,
 } from "./icons";
 
 // The admin sidebar (a slide-out menu on phones). Add a page to the menu here.
@@ -16,6 +16,7 @@ const links: { href: string; label: string; Icon: typeof DashboardIcon; badge?: 
     { href: "/admin/products", label: "Products", Icon: BoxIcon },
     { href: "/admin/inventory", label: "Inventory", Icon: StackIcon },
     { href: "/admin/sellers", label: "Sellers", Icon: UsersIcon, sub: true },
+    { href: "/admin/purchase-orders", label: "Purchase Orders", Icon: FileIcon, sub: true },
     { href: "/admin/stores", label: "Stores", Icon: StoreIcon },
     { href: "/admin/calculator", label: "Price Calculator", Icon: CalculatorIcon },
     { href: "/admin/sales", label: "Sales", Icon: SalesIcon },

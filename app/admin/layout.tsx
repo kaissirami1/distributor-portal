@@ -25,9 +25,12 @@ export default async function AdminLayout({
     const waiting = await prisma.submission.count({ where: { status: "pending" } });
 
     return (
-        <div data-admin-theme={theme} className="min-h-screen lg:flex bg-zinc-950 text-white">
-            <AdminNav waiting={waiting} admin={admin} theme={theme} />
-            <main className="flex-1 min-w-0 px-4 py-6 md:px-8 md:py-8 max-w-6xl">{children}</main>
+        <div data-admin-theme={theme} className="min-h-screen lg:flex bg-zinc-950 text-white print:bg-[#fff]">
+            {/* Printing a page (e.g. a purchase order) leaves out the menu */}
+            <div className="contents print:hidden">
+                <AdminNav waiting={waiting} admin={admin} theme={theme} />
+            </div>
+            <main className="flex-1 min-w-0 px-4 py-6 md:px-8 md:py-8 max-w-6xl print:p-0 print:max-w-none">{children}</main>
         </div>
     );
 }

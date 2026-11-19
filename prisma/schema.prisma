@@ -129,6 +129,7 @@ model InventoryItem {
 
   movements  InventoryMovement[]
   sales      Sale[]
+  orderLines PurchaseOrderLine[]
 }
 
 // Every change to an item's stock: received, sold, removed, corrected
@@ -201,6 +202,8 @@ model Bill {
   notes         String?
   author        String?
   createdAt     DateTime  @default(now())
+
+  purchaseOrder PurchaseOrder? // when this bill came from a purchase order
 }
 
 // The people and companies we buy inventory from (Admin → Inventory → Sellers)
@@ -218,5 +221,49 @@ model Seller {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  items       InventoryItem[]
+  items          InventoryItem[]
+  purchaseOrders PurchaseOrder[]
+}
+
+// Orders we place with a seller (Admin → Inventory → Purchase orders).
+// The seller ships to our 3PL; when it arrives, the stock is added and a bill is made in Payments.
+model PurchaseOrder {
+  id          Int       @id @default(autoincrement())
+  status      String    @default("draft") // draft, sent, confirmed, shipped, received, cancelled
+  sellerId    Int?
+  seller      Seller?   @relation(fields: [sellerId], references: [id], onDelete: SetNull)
+  sellerName  String    // kept even if the seller is deleted later
+  shipTo      String?   // the warehouse (3PL) name and address
+  wantedBy    DateTime? // when we'd like it at the warehouse
+  expectedAt  DateTime? // when the seller says it will arrive
+  termsDays   Int       @default(30) // e.g. net 30: pay 30 days after it arrives
+  tracking    String?   // tracking or bill of lading number
+  notes       String?
+  author      String?
+  sentAt      DateTime?
+  confirmedAt DateTime?
+  shippedAt   DateTime?
+  receivedAt  DateTime?
+  billId      Int?      @unique
+  bill        Bill?     @relation(fields: [billId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  lines       PurchaseOrderLine[]
+}
+
+// One product on a purchase order
+model PurchaseOrderLine {
+  id              Int            @id @default(autoincrement())
+  purchaseOrderId Int
+  purchaseOrder   PurchaseOrder  @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  itemId          Int?
+  item            InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  itemName        String         // kept even if the item is deleted later
+  unit            String         @default("case")
+  cases           Int            // how many we ordered, in the item's unit
+  pallets         Int?           // ordered as this many pallets
+  unitCost        Float          // the seller's price per case
+  receivedCases   Int?           // how many actually arrived
+  batch           String?        // batch / lot number on what arrived
 }
