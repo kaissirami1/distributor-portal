@@ -55,7 +55,7 @@ export default async function PurchaseOrderPage({ params, searchParams }: PagePr
 
     const order = await prisma.purchaseOrder.findUnique({
         where: { id: Number(id) || 0 },
-        include: { lines: { include: { item: { select: { id: true, quantity: true } } }, orderBy: { id: "asc" } }, seller: true, bill: true },
+        include: { lines: { include: { item: { select: { id: true, quantity: true, sku: true } } }, orderBy: { id: "asc" } }, seller: true, bill: true },
     });
     if (!order) notFound();
 
@@ -69,7 +69,7 @@ export default async function PurchaseOrderPage({ params, searchParams }: PagePr
     if (edit && editable) {
         const [sellers, items] = await Promise.all([
             prisma.seller.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-            prisma.inventoryItem.findMany({ select: { id: true, name: true, unit: true, cost: true, casesPerPallet: true, sellerId: true }, orderBy: { name: "asc" } }),
+            prisma.inventoryItem.findMany({ select: { id: true, name: true, sku: true, unit: true, cost: true, casesPerPallet: true, sellerId: true }, orderBy: { name: "asc" } }),
         ]);
         return (
             <div>
@@ -104,7 +104,9 @@ export default async function PurchaseOrderPage({ params, searchParams }: PagePr
     const cases = orderCases(order.lines);
     const pallets = order.lines.reduce((n, l) => n + (l.pallets ?? 0), 0);
     const amount = (n: number, unit: string, p: number | null) => (p ? `${p} pallet${p === 1 ? "" : "s"} (${n} ${plural(unit)})` : `${n} ${n === 1 ? unit : plural(unit)}`);
-    const lineText = order.lines.map((l) => `- ${l.itemName}: ${amount(l.cases, l.unit, l.pallets)} at ${money(l.unitCost)} per ${l.unit} = ${money(l.cases * l.unitCost)}`).join("\n");
+    // The seller's item number goes first, so they can find each product fast
+    const itemNo = (l: (typeof order.lines)[number]) => (l.item?.sku ? `#${l.item.sku} ` : "");
+    const lineText = order.lines.map((l) => `- ${itemNo(l)}${l.itemName}: ${amount(l.cases, l.unit, l.pallets)} at ${money(l.unitCost)} per ${l.unit} = ${money(l.cases * l.unitCost)}`).join("\n");
     const signOff = `Thank you,\n${admin}\n${site.name}\n${site.phone} · ${site.email}`;
 
     const sellerMessage = [
@@ -128,7 +130,7 @@ export default async function PurchaseOrderPage({ params, searchParams }: PagePr
             `Carrier / tracking: ${order.tracking || "to follow"}`,
             `Contents: ${pallets ? `${pallets} pallets, ` : ""}${cases} cases`,
         ].join("\n"),
-        order.lines.map((l) => `- ${l.itemName}: ${amount(l.cases, l.unit, l.pallets)}`).join("\n"),
+        order.lines.map((l) => `- ${itemNo(l)}${l.itemName}: ${amount(l.cases, l.unit, l.pallets)}`).join("\n"),
         "Please receive it into our inventory, let us know about any damage or shortage, and note the batch/lot number and best-by date on each pallet.",
         signOff,
     ].join("\n\n");
@@ -313,6 +315,7 @@ export default async function PurchaseOrderPage({ params, searchParams }: PagePr
                                     <tr key={l.id}>
                                         <td className="py-2.5 pr-3">
                                             {l.item ? <Link href={`/admin/inventory/${l.item.id}`} className="hover:underline">{l.itemName}</Link> : l.itemName}
+                                            {l.item?.sku && <span className="block text-xs text-zinc-500">Item #{l.item.sku}</span>}
                                             {l.batch && <span className="block text-xs text-zinc-500 font-mono">Batch {l.batch}</span>}
                                         </td>
                                         <td className="py-2.5 pr-3 text-zinc-300">{amount(l.cases, l.unit, l.pallets)}</td>
@@ -372,7 +375,7 @@ export default async function PurchaseOrderPage({ params, searchParams }: PagePr
                 wantedBy={order.wantedBy}
                 terms={`${termsLabel(order.termsDays)}${order.termsDays ? " from delivery" : ""}`}
                 notes={order.notes}
-                lines={order.lines.map((l) => ({ name: l.itemName, amount: amount(l.cases, l.unit, l.pallets), unitCost: l.unitCost, total: l.cases * l.unitCost }))}
+                lines={order.lines.map((l) => ({ sku: l.item?.sku ?? "", name: l.itemName, amount: amount(l.cases, l.unit, l.pallets), unitCost: l.unitCost, total: l.cases * l.unitCost }))}
                 total={total}
             />
         </div>
@@ -388,7 +391,7 @@ function PrintedOrder({ number, date, seller, shipTo, wantedBy, terms, notes, li
     wantedBy: Date | null;
     terms: string;
     notes: string | null;
-    lines: { name: string; amount: string; unitCost: number; total: number }[];
+    lines: { sku: string; name: string; amount: string; unitCost: number; total: number }[];
     total: number;
 }) {
     const ink = { color: "#111" } as const;
@@ -425,6 +428,7 @@ function PrintedOrder({ number, date, seller, shipTo, wantedBy, terms, notes, li
             <table style={{ width: "100%", borderCollapse: "collapse", margin: "8px 0 16px" }}>
                 <thead>
                     <tr style={{ background: "#f2f2f2" }}>
+                        <th style={cell}>Item #</th>
                         <th style={cell}>Product</th>
                         <th style={cell}>Quantity</th>
                         <th style={{ ...cell, textAlign: "right" }}>Price per case</th>
@@ -434,6 +438,7 @@ function PrintedOrder({ number, date, seller, shipTo, wantedBy, terms, notes, li
                 <tbody>
                     {lines.map((l, i) => (
                         <tr key={i}>
+                            <td style={{ ...cell, whiteSpace: "nowrap" }}>{l.sku}</td>
                             <td style={cell}>{l.name}</td>
                             <td style={cell}>{l.amount}</td>
                             <td style={{ ...cell, textAlign: "right" }}>{money(l.unitCost)}</td>
@@ -443,7 +448,7 @@ function PrintedOrder({ number, date, seller, shipTo, wantedBy, terms, notes, li
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colSpan={3} style={{ ...cell, fontWeight: 700, borderBottom: "none", textAlign: "right" }}>Total</td>
+                        <td colSpan={4} style={{ ...cell, fontWeight: 700, borderBottom: "none", textAlign: "right" }}>Total</td>
                         <td style={{ ...cell, fontWeight: 700, borderBottom: "none", textAlign: "right" }}>{money(total)}</td>
                     </tr>
                 </tfoot>

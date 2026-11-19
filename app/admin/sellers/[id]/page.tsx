@@ -104,11 +104,16 @@ export default async function SellerPage({ params, searchParams }: PageProps) {
                         {seller.items.length === 0 ? (
                             <EmptyState title="No items yet" text="Add an inventory item and pick this seller." />
                         ) : (
+                            <>
                             <ul className="divide-y divide-zinc-800 -my-2">
-                                {seller.items.map((i) => (
+                                {/* In stock first; a big catalog shows its first 25 here, the rest in Inventory */}
+                                {[...seller.items].sort((a, b) => b.quantity - a.quantity).slice(0, 25).map((i) => (
                                     <li key={i.id}>
                                         <Link href={`/admin/inventory/${i.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 -mx-2 px-2 rounded-lg hover:bg-zinc-800/60 transition">
-                                            <span className="flex-1 min-w-40 font-medium">{i.name}</span>
+                                            <span className="flex-1 min-w-40">
+                                                <span className="block font-medium">{i.name}</span>
+                                                {i.sku && <span className="block text-xs text-zinc-500">Item #{i.sku}</span>}
+                                            </span>
                                             <span className="text-sm text-right tabular-nums">
                                                 {unitCount(i.quantity, i.unit)}
                                                 {palletCount(i.quantity, i.unit, i.casesPerPallet) && <span className="block text-xs text-zinc-500">{palletCount(i.quantity, i.unit, i.casesPerPallet)}</span>}
@@ -118,6 +123,12 @@ export default async function SellerPage({ params, searchParams }: PageProps) {
                                     </li>
                                 ))}
                             </ul>
+                            {seller.items.length > 25 && (
+                                <Link href={`/admin/inventory?q=${encodeURIComponent(seller.name)}`} className="block mt-4 pt-3 border-t border-zinc-800 text-sm text-zinc-400 hover:text-white">
+                                    See all {seller.items.length.toLocaleString("en-US")} of their items in Inventory →
+                                </Link>
+                            )}
+                            </>
                         )}
                     </Panel>
 

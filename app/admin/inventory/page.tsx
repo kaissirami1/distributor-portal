@@ -12,6 +12,9 @@ export const metadata = { title: "Inventory" };
 
 type PageProps = { searchParams: Promise<{ q?: string; low?: string; deleted?: string }> };
 
+// A big catalog (e.g. a seller's 1,600 products) would make the page slow: show this many, search for the rest
+const SHOW_AT_ONCE = 200;
+
 export default async function InventoryPage({ searchParams }: PageProps) {
     await requireAdmin();
     const { q, low, deleted } = await searchParams;
@@ -39,7 +42,8 @@ export default async function InventoryPage({ searchParams }: PageProps) {
         const batches = i.movements.map((m) => m.batch).join(" ");
         const hay = `${i.name} ${i.sku ?? ""} ${i.caseBarcode ?? ""} ${i.seller?.name ?? i.supplier ?? ""} ${i.location ?? ""} ${batches}`.toLowerCase();
         return hay.includes(searchQuery.toLowerCase());
-    });
+    // What you have in stock first, then the rest of the catalog (each A to Z)
+    }).sort((a, b) => Number(b.quantity > 0) - Number(a.quantity > 0));
 
     const lowCount = all.filter(isLow).length;
     const valueAtCost = all.reduce((sum, i) => sum + i.quantity * i.cost, 0);
@@ -103,7 +107,7 @@ export default async function InventoryPage({ searchParams }: PageProps) {
                         <span className="text-right">Margin</span>
                     </div>
                     <ul className="divide-y divide-zinc-800">
-                        {items.map((i) => (
+                        {items.slice(0, SHOW_AT_ONCE).map((i) => (
                             <li key={i.id}>
                                 <Link
                                     href={`/admin/inventory/${i.id}`}
@@ -113,7 +117,7 @@ export default async function InventoryPage({ searchParams }: PageProps) {
                                     <div className="min-w-0">
                                         <p className="font-medium truncate">{i.name}</p>
                                         <p className="text-xs text-zinc-500 truncate">
-                                            {[i.seller?.name ?? i.supplier, i.caseBarcode && `Case ${i.caseBarcode}`, i.sku, i.location].filter(Boolean).join(" · ") || "Click to add details"}
+                                            {[i.seller?.name ?? i.supplier, i.sku && `Item #${i.sku}`, i.caseBarcode && `Case ${i.caseBarcode}`, i.location].filter(Boolean).join(" · ") || "Click to add details"}
                                         </p>
                                     </div>
                                     <div className="text-right">
@@ -130,6 +134,11 @@ export default async function InventoryPage({ searchParams }: PageProps) {
                             </li>
                         ))}
                     </ul>
+                    {items.length > SHOW_AT_ONCE && (
+                        <p className="px-4 py-3 text-sm text-zinc-400 border-t border-zinc-800 bg-zinc-900">
+                            Showing {SHOW_AT_ONCE} of {items.length.toLocaleString("en-US")} items. Search by name, item number or seller to find the rest.
+                        </p>
+                    )}
                 </div>
             )}
         </div>

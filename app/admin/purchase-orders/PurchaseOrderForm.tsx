@@ -7,7 +7,10 @@ import { money, plural } from "@/lib/inventory";
 import { PAYMENT_TERMS } from "@/lib/purchaseOrders";
 import { savePurchaseOrder, type LineInput } from "./actions";
 
-export type FormItem = { id: number; name: string; unit: string; cost: number; casesPerPallet: number | null; sellerId: number | null };
+export type FormItem = { id: number; name: string; sku: string | null; unit: string; cost: number; casesPerPallet: number | null; sellerId: number | null };
+
+// What the product search box shows for an item: its name and the seller's item number
+const itemLabel = (i: FormItem) => (i.sku ? `${i.name} · #${i.sku}` : i.name);
 export type FormSeller = { id: number; name: string };
 export type FormOrder = {
     id: number;
@@ -19,9 +22,9 @@ export type FormOrder = {
     lines: LineInput[];
 };
 
-type Line = LineInput & { key: number };
+type Line = LineInput & { key: number; search: string };
 
-const emptyLine = (key: number): Line => ({ key, itemId: "", qty: "", by: "case", perPallet: "", unitCost: "", newName: "", unit: "case" });
+const emptyLine = (key: number): Line => ({ key, search: "", itemId: "", qty: "", by: "case", perPallet: "", unitCost: "", newName: "", unit: "case" });
 
 export function PurchaseOrderForm({ sellers, items, order, presetSellerId, defaultShipTo }: {
     sellers: FormSeller[];
@@ -32,22 +35,37 @@ export function PurchaseOrderForm({ sellers, items, order, presetSellerId, defau
 }) {
     const [state, formAction, pending] = useActionState(savePurchaseOrder, {});
     const [sellerId, setSellerId] = useState(String(order?.sellerId ?? presetSellerId ?? ""));
-    const [lines, setLines] = useState<Line[]>(() => (order?.lines.length ? order.lines.map((l, i) => ({ ...emptyLine(i), ...l, key: i })) : [emptyLine(0)]));
+    const [lines, setLines] = useState<Line[]>(() => (order?.lines.length
+        ? order.lines.map((l, i) => {
+            const item = items.find((it) => String(it.id) === l.itemId);
+            return { ...emptyLine(i), ...l, key: i, search: item ? itemLabel(item) : "" };
+        })
+        : [emptyLine(0)]));
     const [nextKey, setNextKey] = useState(lines.length);
 
+    // The search suggests this seller's products (or every product, if they have none yet)
     const theirs = items.filter((i) => String(i.sellerId) === sellerId);
-    const others = items.filter((i) => String(i.sellerId) !== sellerId);
+    const choices = theirs.length ? theirs : items;
+
+    // Typing in a product's search box: once it matches a product (by name or item number), pick it
+    function search(key: number, value: string) {
+        const typed = value.trim().replace(/^#/, "").toLowerCase();
+        const item = choices.find((i) => itemLabel(i).toLowerCase() === value.trim().toLowerCase() || (i.sku && i.sku.toLowerCase() === typed))
+            ?? items.find((i) => itemLabel(i) === value.trim());
+        setLines((all) => all.map((l) => (l.key === key ? { ...l, search: item ? itemLabel(item) : value } : l)));
+        update(key, { itemId: item ? String(item.id) : "" });
+    }
 
     function update(key: number, patch: Partial<LineInput>) {
         setLines((all) => all.map((l) => {
             if (l.key !== key) return l;
             const next = { ...l, ...patch };
-            // Picking a product fills in its last price and pallet size
-            if (patch.itemId && patch.itemId !== "new") {
+            // Picking a different product fills in its last price and pallet size
+            if (patch.itemId && patch.itemId !== "new" && patch.itemId !== l.itemId) {
                 const item = items.find((i) => String(i.id) === patch.itemId);
                 if (item) {
-                    if (l.unitCost === "") next.unitCost = String(item.cost || "");
-                    if (item.casesPerPallet && !l.perPallet) next.perPallet = String(item.casesPerPallet);
+                    if (item.cost > 0 || l.unitCost === "") next.unitCost = item.cost > 0 ? String(item.cost) : "";
+                    if (item.casesPerPallet) next.perPallet = String(item.casesPerPallet);
                     next.unit = item.unit;
                 }
             }
@@ -118,8 +136,13 @@ export function PurchaseOrderForm({ sellers, items, order, presetSellerId, defau
             <section className={box}>
                 <div className="flex items-center justify-between gap-3 mb-4">
                     <h2 className="font-semibold">Products</h2>
-                    {sellerId && theirs.length === 0 && <span className="text-xs text-zinc-500">No products from this seller yet: pick &quot;New product&quot;.</span>}
+                    <span className="text-xs text-zinc-500">
+                        {sellerId && theirs.length > 0 ? `${theirs.length.toLocaleString("en-US")} products from this seller` : sellerId ? "No products from this seller yet: search all, or add a new one" : ""}
+                    </span>
                 </div>
+                <datalist id="po-products">
+                    {choices.map((it) => <option key={it.id} value={itemLabel(it)} />)}
+                </datalist>
 
                 <div className="space-y-4">
                     {lines.map((l, i) => {
@@ -127,34 +150,39 @@ export function PurchaseOrderForm({ sellers, items, order, presetSellerId, defau
                         const units = plural(l.unit || "case");
                         return (
                             <div key={l.key} className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-start pb-4 border-b border-zinc-800 last:border-0 last:pb-0">
-                                <label className="col-span-2 sm:col-span-4 block">
+                                <div className="col-span-2 sm:col-span-4">
                                     <span className="flex items-center justify-between gap-2 text-xs text-zinc-500">
-                                        Product {i + 1}
-                                        {lines.length > 1 && (
-                                            <button type="button" onClick={(e) => { e.preventDefault(); removeLine(l.key); }} aria-label={`Remove product ${i + 1}`} className="text-zinc-500 hover:text-red-400">Remove</button>
-                                        )}
+                                        <label htmlFor={`po-product-${l.key}`}>Product {i + 1}</label>
+                                        <span className="flex gap-3">
+                                            {l.itemId === "new"
+                                                ? <button type="button" onClick={() => update(l.key, { itemId: "" })} className="hover:text-white">Pick from the list instead</button>
+                                                : <button type="button" onClick={() => update(l.key, { itemId: "new" })} className="hover:text-white">+ New product</button>}
+                                            {lines.length > 1 && (
+                                                <button type="button" onClick={() => removeLine(l.key)} aria-label={`Remove product ${i + 1}`} className="hover:text-red-400">Remove</button>
+                                            )}
+                                        </span>
                                     </span>
-                                    <select value={l.itemId} onChange={(e) => update(l.key, { itemId: e.target.value })} required className={field}>
-                                        <option value="" disabled>Pick a product…</option>
-                                        {theirs.length > 0 && (
-                                            <optgroup label="From this seller">
-                                                {theirs.map((it) => <option key={it.id} value={it.id}>{it.name}</option>)}
-                                            </optgroup>
-                                        )}
-                                        {others.length > 0 && (
-                                            <optgroup label="Other products">
-                                                {others.map((it) => <option key={it.id} value={it.id}>{it.name}</option>)}
-                                            </optgroup>
-                                        )}
-                                        <option value="new">+ New product…</option>
-                                    </select>
-                                    {l.itemId === "new" && (
+                                    {l.itemId === "new" ? (
                                         <>
-                                            <input value={l.newName} onChange={(e) => update(l.key, { newName: e.target.value })} required placeholder="New product's name" className={field} />
+                                            <input id={`po-product-${l.key}`} value={l.newName} onChange={(e) => update(l.key, { newName: e.target.value })} required placeholder="New product's name" className={field} />
                                             <span className="block text-xs text-zinc-500 mt-1">It&apos;s added to Inventory. Set its selling price there.</span>
                                         </>
+                                    ) : (
+                                        <>
+                                            <input
+                                                id={`po-product-${l.key}`}
+                                                list="po-products"
+                                                value={l.search}
+                                                onChange={(e) => search(l.key, e.target.value)}
+                                                placeholder="Type a name or item number"
+                                                autoComplete="off"
+                                                aria-invalid={l.search !== "" && !l.itemId}
+                                                className={`${field} ${l.search !== "" && !l.itemId ? "border-amber-700" : ""}`}
+                                            />
+                                            {l.search !== "" && !l.itemId && <span className="block text-xs text-amber-300 mt-1">Pick one of the suggestions, or add it as a new product.</span>}
+                                        </>
                                     )}
-                                </label>
+                                </div>
                                 <label className="block">
                                     <span className="text-xs text-zinc-500">Order by</span>
                                     <select value={l.by} onChange={(e) => update(l.key, { by: e.target.value as "case" | "pallet" })} className={field}>

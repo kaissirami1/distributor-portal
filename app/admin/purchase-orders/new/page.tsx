@@ -13,7 +13,7 @@ export default async function NewPurchaseOrderPage({ searchParams }: PageProps) 
 
     const [sellers, items, last] = await Promise.all([
         prisma.seller.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
-        prisma.inventoryItem.findMany({ select: { id: true, name: true, unit: true, cost: true, casesPerPallet: true, sellerId: true }, orderBy: { name: "asc" } }),
+        prisma.inventoryItem.findMany({ select: { id: true, name: true, sku: true, unit: true, cost: true, casesPerPallet: true, sellerId: true }, orderBy: { name: "asc" } }),
         // The warehouse address from the last order, so it doesn't need typing every time
         prisma.purchaseOrder.findFirst({ where: { shipTo: { not: null } }, orderBy: { createdAt: "desc" }, select: { shipTo: true } }),
     ]);
