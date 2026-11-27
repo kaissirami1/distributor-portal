@@ -78,6 +78,10 @@ model Sale {
   dueDate         DateTime?
   paidAt          DateTime?
   paymentMethod   String?
+
+  // Set when the sale came from a seller order delivered to the store (Admin → Lipari)
+  purchaseOrderId Int?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: SetNull)
 }
 
 // Paperwork a seller sends us: food license, FDA registration, insurance, etc.
@@ -167,8 +171,9 @@ model Store {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  visits      StoreVisit[]
-  sales       Sale[]
+  visits         StoreVisit[]
+  sales          Sale[]
+  purchaseOrders PurchaseOrder[]
 }
 
 // Every visit, call or message with a store
@@ -249,7 +254,19 @@ model PurchaseOrder {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
+  // Ordered for a store and sent through a 3PL (Admin → Lipari): one product, one store, one barcode
+  storeId        Int?
+  store          Store?     @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  storeName      String?    // kept even if the store is deleted later
+  warehouseId    Int?
+  warehouse      Warehouse? @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  doCode         String?    @unique // the delivery barcode on its pallets: a code that means nothing to anyone but us and the 3PL
+  batchCode      String?    // orders emailed to the seller together; also the private link to their pallet labels
+  storeTermsDays Int        @default(30) // the store pays us this many days after delivery
+  deliveredAt    DateTime?  // when the 3PL delivered it to the store
+
   lines       PurchaseOrderLine[]
+  sales       Sale[]
 }
 
 // One product on a purchase order
@@ -266,4 +283,28 @@ model PurchaseOrderLine {
   unitCost        Float          // the seller's price per case
   receivedCases   Int?           // how many actually arrived
   batch           String?        // batch / lot number on what arrived
+  salePrice       Float?         // what the store pays us per case
+}
+
+// 3PL warehouses: they receive the seller's pallets and deliver them to our stores (Admin → 3PL Warehouses)
+model Warehouse {
+  id           Int      @id @default(autoincrement())
+  name         String
+  contactName  String?
+  email        String?
+  phone        String?
+  address      String?
+  city         String?
+  state        String?
+  zip          String?
+  hours        String?  // receiving hours, delivery days
+  receivingFee Float?   // per pallet received
+  storageFee   Float?   // per pallet, per month
+  deliveryFee  Float?   // per delivery to a store
+  status       String   @default("quoting") // quoting, using, not_using
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  purchaseOrders PurchaseOrder[]
 }

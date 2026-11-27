@@ -26,7 +26,7 @@ export default async function PaymentsPage() {
                 inventoryItem: { select: { id: true, name: true } },
             },
         }),
-        prisma.bill.findMany({ orderBy: { createdAt: "desc" }, include: { purchaseOrder: { select: { id: true } } } }),
+        prisma.bill.findMany({ orderBy: { createdAt: "desc" }, include: { purchaseOrder: { select: { id: true, doCode: true } } } }),
         prisma.store.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
         prisma.submission.findMany({ where: { status: "approved" }, select: { companyName: true, name: true } }),
         prisma.inventoryItem.findMany({ where: { supplier: { not: null } }, select: { supplier: true } }),
@@ -150,7 +150,7 @@ export default async function PaymentsPage() {
                                             {[b.description, b.reference && `Their invoice ${b.reference}`, `added ${formatDate(b.createdAt)}${b.author ? ` by ${b.author}` : ""}`].filter(Boolean).join(" · ")}
                                         </p>
                                         {b.notes && <p className="text-xs text-zinc-400 mt-1">{b.notes}</p>}
-                                        {b.purchaseOrder && <Link href={`/admin/purchase-orders/${b.purchaseOrder.id}`} className="text-xs text-zinc-400 underline hover:text-white">See purchase order {poNumber(b.purchaseOrder.id)}</Link>}
+                                        {b.purchaseOrder && <Link href={b.purchaseOrder.doCode ? `/admin/lipari/${b.purchaseOrder.id}` : `/admin/purchase-orders/${b.purchaseOrder.id}`} className="text-xs text-zinc-400 underline hover:text-white">See purchase order {poNumber(b.purchaseOrder.id)}</Link>}
                                     </div>
                                     <div className="text-right">
                                         <p className="font-semibold tabular-nums">{money(b.amount)}</p>

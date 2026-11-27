@@ -5,18 +5,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { site } from "@/lib/site";
 import {
-    BoxIcon, CalculatorIcon, CloseIcon, DashboardIcon, DownloadIcon, FileIcon, GlobeIcon, InboxIcon, LogoutIcon, MenuIcon, MoonIcon, SalesIcon, StackIcon, StoreIcon, SunIcon, UsersIcon, WalletIcon,
+    BoxIcon, CalculatorIcon, CloseIcon, DashboardIcon, DownloadIcon, GlobeIcon, InboxIcon, LogoutIcon, MenuIcon, MoonIcon, SalesIcon, StackIcon, StoreIcon, SunIcon, WalletIcon, WarehouseIcon,
 } from "./icons";
 
 // The admin sidebar (a slide-out menu on phones). Add a page to the menu here.
 // "sub" pages are shown indented under the one above them.
+// Hidden for now (pages still work): Inventory, Sellers and Purchase Orders, for when we hold our own stock.
 const links: { href: string; label: string; Icon: typeof DashboardIcon; badge?: "waiting"; sub?: boolean }[] = [
     { href: "/admin", label: "Dashboard", Icon: DashboardIcon },
     { href: "/admin/submissions", label: "Submissions", Icon: InboxIcon, badge: "waiting" },
     { href: "/admin/products", label: "Products", Icon: BoxIcon },
-    { href: "/admin/inventory", label: "Inventory", Icon: StackIcon },
-    { href: "/admin/sellers", label: "Sellers", Icon: UsersIcon, sub: true },
-    { href: "/admin/purchase-orders", label: "Purchase Orders", Icon: FileIcon, sub: true },
+    { href: "/admin/lipari", label: "Lipari", Icon: StackIcon },
+    { href: "/admin/warehouses", label: "3PL Warehouses", Icon: WarehouseIcon },
     { href: "/admin/stores", label: "Stores", Icon: StoreIcon },
     { href: "/admin/calculator", label: "Price Calculator", Icon: CalculatorIcon },
     { href: "/admin/sales", label: "Sales", Icon: SalesIcon },

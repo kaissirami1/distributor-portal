@@ -34,3 +34,5 @@ export const SunIcon = (p: IconProps) => <Svg {...p}><circle cx="12" cy="12" r="
 export const MoonIcon = (p: IconProps) => <Svg {...p}><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" /></Svg>;
 export const UsersIcon = (p: IconProps) => <Svg {...p}><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 13 0" /><path d="M16 4.5a3.5 3.5 0 0 1 0 7" /><path d="M18 14a6.5 6.5 0 0 1 3.5 6" /></Svg>;
 export const CheckIcon = (p: IconProps) => <Svg {...p}><path d="m5 12 5 5 9-10" /></Svg>;
+export const WarehouseIcon = (p: IconProps) => <Svg {...p}><path d="M3 21V9l9-5 9 5v12" /><path d="M7 21v-8h10v8" /><path d="M7 17h10" /></Svg>;
+export const TruckIcon =(p: IconProps) => <Svg {...p}><path d="M3 6h11v10H3z" /><path d="M14 9h4l3 4v3h-7" /><circle cx="7" cy="17.5" r="1.8" /><circle cx="17" cy="17.5" r="1.8" /></Svg>;

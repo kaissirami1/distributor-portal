@@ -75,7 +75,7 @@ export default async function InventoryItemPage({ params, searchParams }: PagePr
     return (
         <div className="space-y-6">
             <PageHeader
-                back={{ href: "/admin/inventory", label: "Inventory" }}
+                back={/lipari/i.test(item.seller?.name ?? "") ? { href: "/admin/lipari/products", label: "Lipari products" } : { href: "/admin/inventory", label: "Inventory" }}
                 title={item.name}
                 description={
                     sellerName || item.location
